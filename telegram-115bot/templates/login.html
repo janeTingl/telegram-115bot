@@ -6,8 +6,15 @@
     <title>登录 - Telegram-115Bot</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .login-container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); width: 100%; max-width: 400px; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            height: 100vh; display: flex; align-items: center; justify-content: center; 
+        }
+        .login-container { 
+            background: white; padding: 40px; border-radius: 10px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); width: 100%; max-width: 400px; 
+        }
         h1 { text-align: center; margin-bottom: 30px; color: #333; }
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 5px; font-weight: 600; color: #555; }
@@ -15,12 +22,11 @@
         button { width: 100%; background: #007bff; color: white; border: none; padding: 12px; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: 600; }
         button:hover { background: #0056b3; }
         .error { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #f5c6cb; }
-        .info { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
     </style>
 </head>
 <body>
     <div class="login-container">
-        <h1>🔐 Telegram-115Bot</h1>
+        <h1>🔐 登录</h1>
         
         {% if error %}
         <div class="error">{{ error }}</div>
@@ -29,22 +35,16 @@
         <form method="POST">
             <div class="form-group">
                 <label for="username">用户名</label>
-                <input type="text" id="username" name="username" placeholder="默认: admin" required>
+                <input type="text" id="username" name="username" required>
             </div>
             
             <div class="form-group">
                 <label for="password">密码</label>
-                <input type="password" id="password" name="password" placeholder="默认: admin123" required>
+                <input type="password" id="password" name="password" required>
             </div>
             
             <button type="submit">登录</button>
         </form>
-        
-        <div class="info">
-            默认用户名: admin<br>
-            默认密码: admin123<br>
-            可通过环境变量修改
-        </div>
     </div>
 </body>
 </html>
