@@ -2,9 +2,9 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build:
@@ -18,21 +18,21 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       # 3️⃣ 构建 Docker 镜像并打两个标签
       - name: Build and tag Docker image
         run: |
           cd telegram-115bot
-          IMAGE_NAME=yourdockerhubusername/telegram-115bot
+          IMAGE_NAME=${{ secrets.DOCKERHUB_USERNAME }}/telegram-115bot
           VERSION=1.0.1
           docker build . --tag $IMAGE_NAME:$VERSION --tag $IMAGE_NAME:latest
 
       # 4️⃣ 推送镜像到 Docker Hub
       - name: Push Docker image
         run: |
-          IMAGE_NAME=yourdockerhubusername/telegram-115bot
+          IMAGE_NAME=${{ secrets.DOCKERHUB_USERNAME }}/telegram-115bot
           VERSION=1.0.1
           docker push $IMAGE_NAME:$VERSION
           docker push $IMAGE_NAME:latest
