@@ -12,9 +12,20 @@ import logging
 import requests
 import qrcode
 from io import BytesIO
-from flask import Flask, render_template_string, request, jsonify, session, redirect, url_for
-from telegram import Update, BotCommand
-from telegram.ext import ContextTypes, CommandHandler, Application, MessageHandler, filters
+
+# 根据版本选择导入方式
+try:
+    # 尝试导入 v20.x 版本
+    from telegram import Update
+    from telegram.ext import ContextTypes, CommandHandler, Application, MessageHandler, filters
+    TELEGRAM_VERSION = 20
+    print("✅ 使用 python-telegram-bot v20.x")
+except ImportError:
+    # 回退到 v13.x 版本
+    from telegram import Update
+    from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+    TELEGRAM_VERSION = 13
+    print("✅ 使用 python-telegram-bot v13.x")
 
 # 配置日志
 logging.basicConfig(
@@ -34,7 +45,6 @@ class Config:
     def load_config(self):
         config_file = "/app/data/config.yaml"
         if not os.path.exists(config_file):
-            # 生成默认配置
             default_config = {
                 'bot_token': os.getenv('BOT_TOKEN', ''),
                 'allowed_user': os.getenv('ALLOWED_USER', ''),
@@ -54,7 +64,7 @@ class Config:
 
 config = Config()
 
-# 115 API功能
+# 115 API功能 (保持不变)
 class OpenAPI115:
     def __init__(self, app_id, user_agent):
         self.app_id = app_id
@@ -98,99 +108,95 @@ class OpenAPI115:
             logger.error(f"检查登录状态失败: {e}")
         return False
 
-# Telegram Bot 功能
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """处理 /start 命令"""
-    await update.message.reply_text(
-        "🤖 欢迎使用 115 网盘机器人！\n\n"
-        "可用命令：\n"
-        "/start - 显示此帮助信息\n"
-        "/auth - 115网盘扫码登录\n"
-        "/status - 查看登录状态"
-    )
-
-async def auth_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """处理 /auth 命令 - 115扫码登录"""
-    if not config.openapi_115:
-        config.openapi_115 = OpenAPI115(
-            config.bot_config.get('115_app_id', ''),
-            config.bot_config.get('115_user_agent', '')
-        )
+# 根据版本定义不同的机器人函数
+if TELEGRAM_VERSION == 20:
+    # v20.x 版本的机器人函数
+    async def start_command(update: Update, context):
+        await update.message.reply_text("🤖 欢迎使用 115 网盘机器人！")
     
-    qrcode_token = config.openapi_115.get_qrcode()
-    if qrcode_token:
-        # 生成二维码图片
-        qr = qrcode.QRCode(version=1, box_size=10, border=5)
-        qr.add_data(qrcode_token)
-        qr.make(fit=True)
+    async def auth_command(update: Update, context):
+        if not config.openapi_115:
+            app_id = config.bot_config.get('115_app_id')
+            if not app_id:
+                await update.message.reply_text("❌ 115 App ID 未配置")
+                return
+            config.openapi_115 = OpenAPI115(app_id, config.bot_config.get('115_user_agent'))
         
-        img = qr.make_image(fill_color="black", back_color="white")
-        bio = BytesIO()
-        img.save(bio, 'PNG')
-        bio.seek(0)
-        
-        await update.message.reply_photo(
-            photo=bio,
-            caption="📱 请使用115手机App扫描二维码登录\n\n"
-                   "扫码后请使用 /status 命令检查登录状态"
-        )
-    else:
-        await update.message.reply_text("❌ 获取二维码失败，请稍后重试")
-
-async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """处理 /status 命令 - 查看登录状态"""
-    if not config.openapi_115:
-        config.openapi_115 = OpenAPI115(
-            config.bot_config.get('115_app_id', ''),
-            config.bot_config.get('115_user_agent', '')
-        )
+        qrcode_token = config.openapi_115.get_qrcode()
+        if qrcode_token:
+            qr = qrcode.QRCode(version=1, box_size=10, border=5)
+            qr.add_data(qrcode_token)
+            qr.make(fit=True)
+            img = qr.make_image(fill_color="black", back_color="white")
+            bio = BytesIO()
+            img.save(bio, 'PNG')
+            bio.seek(0)
+            await update.message.reply_photo(photo=bio, caption="📱 请使用115手机App扫描二维码登录")
+        else:
+            await update.message.reply_text("❌ 获取二维码失败")
     
-    # 检查登录状态
-    if config.openapi_115.check_login():
-        messages = config.openapi_115.welcome_message()
-        await update.message.reply_text("\n".join(messages))
-    else:
-        messages = config.openapi_115.welcome_message()
-        await update.message.reply_text("\n".join(messages))
-
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """处理普通消息"""
-    await update.message.reply_text(
-        "🤖 我是 115 网盘机器人\n"
-        "请使用命令与我交互：\n"
-        "/start - 显示帮助\n"
-        "/auth - 扫码登录\n"
-        "/status - 查看状态"
-    )
-
-def setup_bot_handlers(application):
-    """设置机器人处理器"""
-    application.add_handler(CommandHandler("start", start_command))
-    application.add_handler(CommandHandler("auth", auth_command))
-    application.add_handler(CommandHandler("status", status_command))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-
-async def start_bot():
-    """启动Telegram机器人"""
-    token = config.bot_config.get('bot_token')
-    if not token:
-        logger.warning("未配置Bot Token，跳过机器人启动")
-        return
-    
-    try:
-        application = Application.builder().token(token).build()
-        setup_bot_handlers(application)
+    async def status_command(update: Update, context):
+        if not config.openapi_115:
+            await update.message.reply_text("❌ 115 API未初始化")
+            return
         
-        logger.info("🤖 Telegram机器人启动成功")
-        await application.run_polling()
-    except Exception as e:
-        logger.error(f"机器人启动失败: {e}")
+        if config.openapi_115.check_login():
+            messages = config.openapi_115.welcome_message()
+            await update.message.reply_text("\n".join(messages))
+        else:
+            messages = config.openapi_115.welcome_message()
+            await update.message.reply_text("\n".join(messages))
+    
+    async def handle_message(update: Update, context):
+        await update.message.reply_text("请使用命令：/start, /auth, /status")
 
-# Web界面
+else:
+    # v13.x 版本的机器人函数
+    def start_command(update: Update, context):
+        update.message.reply_text("🤖 欢迎使用 115 网盘机器人！")
+    
+    def auth_command(update: Update, context):
+        if not config.openapi_115:
+            app_id = config.bot_config.get('115_app_id')
+            if not app_id:
+                update.message.reply_text("❌ 115 App ID 未配置")
+                return
+            config.openapi_115 = OpenAPI115(app_id, config.bot_config.get('115_user_agent'))
+        
+        qrcode_token = config.openapi_115.get_qrcode()
+        if qrcode_token:
+            qr = qrcode.QRCode(version=1, box_size=10, border=5)
+            qr.add_data(qrcode_token)
+            qr.make(fit=True)
+            img = qr.make_image(fill_color="black", back_color="white")
+            bio = BytesIO()
+            img.save(bio, 'PNG')
+            bio.seek(0)
+            update.message.reply_photo(photo=bio, caption="📱 请使用115手机App扫描二维码登录")
+        else:
+            update.message.reply_text("❌ 获取二维码失败")
+    
+    def status_command(update: Update, context):
+        if not config.openapi_115:
+            update.message.reply_text("❌ 115 API未初始化")
+            return
+        
+        if config.openapi_115.check_login():
+            messages = config.openapi_115.welcome_message()
+            update.message.reply_text("\n".join(messages))
+        else:
+            messages = config.openapi_115.welcome_message()
+            update.message.reply_text("\n".join(messages))
+    
+    def handle_message(update: Update, context):
+        update.message.reply_text("请使用命令：/start, /auth, /status")
+
+# Web界面 (保持不变)
+from flask import Flask, render_template_string, request, session, redirect, url_for
+
 app = Flask(__name__)
 app.secret_key = 'telegram-115bot-secret-key'
 
-# HTML模板保持不变...
 LOGIN_HTML = '''
 <!DOCTYPE html>
 <html>
@@ -245,8 +251,37 @@ def logout():
 def start_web_server():
     app.run(host='0.0.0.0', port=config.WEB_PORT, debug=False)
 
-# 主函数
-async def main_async():
+def start_bot():
+    """启动Telegram机器人"""
+    token = config.bot_config.get('bot_token')
+    if not token:
+        logger.warning("未配置Bot Token，跳过机器人启动")
+        return
+    
+    try:
+        if TELEGRAM_VERSION == 20:
+            # v20.x 启动方式
+            application = Application.builder().token(token).build()
+            application.add_handler(CommandHandler("start", start_command))
+            application.add_handler(CommandHandler("auth", auth_command))
+            application.add_handler(CommandHandler("status", status_command))
+            application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+            application.run_polling()
+        else:
+            # v13.x 启动方式
+            updater = Updater(token, use_context=True)
+            dispatcher = updater.dispatcher
+            dispatcher.add_handler(CommandHandler("start", start_command))
+            dispatcher.add_handler(CommandHandler("auth", auth_command))
+            dispatcher.add_handler(CommandHandler("status", status_command))
+            dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
+            updater.start_polling()
+            updater.idle()
+            
+    except Exception as e:
+        logger.error(f"机器人启动失败: {e}")
+
+def main():
     print("🚀 启动 Telegram-115Bot...")
     
     # 加载配置
@@ -254,27 +289,24 @@ async def main_async():
         logger.error("配置加载失败")
         return
     
-    # 启动Web界面（在单独线程中）
+    # 启动Web界面
     web_thread = threading.Thread(target=start_web_server, daemon=True)
     web_thread.start()
     print(f"🌐 Web管理界面: http://0.0.0.0:{config.WEB_PORT}")
-    print("👤 用户名: root")
-    print("🔑 密码: root")
+    print("📝 请通过Web界面配置必要参数")
     
-    # 检查并启动Telegram Bot
+    # 检查Bot Token
     token = config.bot_config.get('bot_token')
     if not token:
         print("⚠️  Bot Token未配置，只运行Web界面")
-        # 保持程序运行
-        while True:
-            await asyncio.sleep(10)
+        try:
+            while True:
+                time.sleep(10)
+        except KeyboardInterrupt:
+            print("程序退出")
     else:
         print("✅ Bot Token已配置，启动Telegram Bot...")
-        await start_bot()
-
-def main():
-    """主入口函数"""
-    asyncio.run(main_async())
+        start_bot()
 
 if __name__ == '__main__':
     main()
