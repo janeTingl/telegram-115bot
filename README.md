@@ -48,12 +48,16 @@ allowed_user: "你的Telegram用户ID"
 EOF
 ```
 # 运行容器
+
 '''docker run -d \
   --name telegram-115bot \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/config.yaml:/app/config.yaml \
-  yongzz668/telegram-115bot:latest '''   
+  yongzz668/telegram-115bot:latest '''  
+  
 - Docker Compose
+
+  
 '''version: '3.8'
 
 services:
