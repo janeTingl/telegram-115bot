@@ -48,13 +48,24 @@ allowed_user: "你的Telegram用户ID"
 EOF
 ```
 # 运行容器
+### Docker Run
+
+```bash
 docker run -d \
   --name telegram-115bot \
-  -v $(pwd)/data:/app/data \
-  -v $(pwd)/config.yaml:/app/config.yaml \
+  -v /vol1/1000/telegram-115bot/data:/app/data \
+  -v /vol1/1000/telegram-115bot/config.yaml:/app/config.yaml \
+  -e TZ=Asia/Shanghai \
+  -e HTTP_PROXY=http://127.0.0.1:7890 \
+  -e http_proxy=http://127.0.0.1:7890 \
+  -e NO_PROXY=localhost,127.0.0.1,192.168.0.0/16 \
   yongzz668/telegram-115bot:latest
+```
 
-  version: '3.8'
+### Docker Compose
+
+```yaml
+version: '3.8'
 
 services:
   telegram-115bot:
@@ -73,6 +84,7 @@ services:
 
       # 可选：不经过代理的地址
       - NO_PROXY=localhost,127.0.0.1,192.168.0.0/16
+```
       🔧 配置获取
 
 1. 获取 Telegram Bot Token
