@@ -31,19 +31,22 @@
 
 ### 方法 1：Docker Run
 
-```bash
+
 # 创建配置目录
+```
 mkdir -p telegram-bot-data
 cd telegram-bot-data
+```
 
 # 创建配置文件
+```
 cat > config.yaml << EOF
 bot_token: "你的Telegram机器人Token"
 allowed_user: "你的Telegram用户ID"
 115_app_id: "你的115AppID"
 115_user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 EOF
-
+```
 # 运行容器
 '''
 docker run -d \
