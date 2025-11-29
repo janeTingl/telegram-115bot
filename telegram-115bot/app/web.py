@@ -10,12 +10,28 @@ app.secret_key = os.urandom(24)
 
 WEB_PORT = 12808
 
+# 登录限制设置
+MAX_LOGIN_ATTEMPTS = 5
+LOCK_TIME = 3600  # 登录失败锁定时间（秒）
+AUTO_LOGOUT_TIME = 15 * 60  # 15分钟无操作自动退出
+
 def login_required(f):
     from functools import wraps
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # 检查登录状态
         if not session.get('logged_in'):
             return redirect(url_for('login'))
+
+        # 检查无操作自动退出
+        last_active = session.get('last_active', 0)
+        if time.time() - last_active > AUTO_LOGOUT_TIME:
+            session.pop('logged_in', None)
+            session.pop('last_active', None)
+            return redirect(url_for('login'))
+
+        # 更新最后操作时间
+        session['last_active'] = time.time()
         return f(*args, **kwargs)
     return decorated_function
 
@@ -26,6 +42,16 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if 'locked_until' in session:
+        if time.time() < session['locked_until']:
+            remaining = int((session['locked_until'] - time.time())/60) + 1
+            error = f"登录被锁定，请 {remaining} 分钟后重试"
+            return render_template('login.html', error=error)
+        else:
+            # 解锁
+            session.pop('locked_until')
+            session.pop('login_attempts', None)
+
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
@@ -33,18 +59,31 @@ def login():
         web_username = os.getenv('WEB_USERNAME', 'admin')
         web_password = os.getenv('WEB_PASSWORD', 'admin123')
         
+        session.setdefault('login_attempts', 0)
+
         if username == web_username and password == web_password:
             session['logged_in'] = True
+            session['last_active'] = time.time()
+            session.pop('login_attempts', None)
             return redirect(url_for('index'))
         else:
-            return render_template('login.html', error='用户名或密码错误')
+            session['login_attempts'] += 1
+            remaining = MAX_LOGIN_ATTEMPTS - session['login_attempts']
+            error = f"用户名或密码错误！剩余尝试次数：{remaining}"
+            if session['login_attempts'] >= MAX_LOGIN_ATTEMPTS:
+                session['locked_until'] = time.time() + LOCK_TIME
+                error = "登录失败次数达到上限，服务已锁定，需要重启才能登录"
+            return render_template('login.html', error=error)
     
     return render_template('login.html')
 
 @app.route('/logout')
 def logout():
     session.pop('logged_in', None)
+    session.pop('last_active', None)
     return redirect(url_for('login'))
+
+# -------------------------- API --------------------------
 
 @app.route('/api/status')
 @login_required
@@ -119,5 +158,6 @@ def api_tasks():
     ]
     return jsonify(tasks)
 
+# -------------------------- 运行 --------------------------
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=WEB_PORT, debug=False)
