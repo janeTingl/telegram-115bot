@@ -4,8 +4,22 @@ services:
   telegram-115bot:
     build: .
     container_name: telegram-115bot
-    restart: unless-stopped
-    volumes:
-      - ./data:/app/data
+    restart: always
+
     environment:
-      - TZ=Asia/Shanghai
+      # 必填：替换为你的 Telegram Bot Token
+      TELEGRAM_BOT_TOKEN: "YOUR_TELEGRAM_BOT_TOKEN_HERE"
+      # 必填：替换为你的 Telegram 用户 ID (数字)
+      TELEGRAM_USER_ID: "YOUR_TELEGRAM_CHAT_ID_HERE"
+      # 【安全】Web 界面登录密码 (请设置为强密码)
+      WEB_ADMIN_PASSWORD: "a_very_strong_password_for_web_login" 
+      
+    ports:
+      # 端口映射：外部 12808 映射到容器 12808
+      - "12808:12808" 
+
+    volumes:
+      # 【核心修复：持久化】确保 Web 界面保存的配置能写到本地磁盘
+      - ./config.yml:/app/config.yml
+      # data 目录挂载
+      - ./data:/app/data
