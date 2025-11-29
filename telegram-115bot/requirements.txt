@@ -6,3 +6,4 @@ chardet
 idna
 urllib3
 qrcode[pil]
+flask
