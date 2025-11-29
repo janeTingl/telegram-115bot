@@ -1,6 +1,7 @@
-python-telegram-bot==20.7
-qrcode==7.4.2
-pillow==10.1.0
-pyyaml==6.0.1
-requests==2.31.0
-flask==2.3.3
+python-telegram-bot==13.15  # 修复版本冲突
+requests
+pyyaml                      # 确保支持读写 YAML
+certifi
+chardet
+idna
+urllib3
