@@ -5,15 +5,8 @@ services:
     build: .
     container_name: telegram-115bot
     restart: always
-
-    environment:
-      TELEGRAM_BOT_TOKEN: "YOUR_TELEGRAM_BOT_TOKEN_HERE"
-      TELEGRAM_USER_ID: "YOUR_TELEGRAM_CHAT_ID_HERE"
-      WEB_ADMIN_PASSWORD: "a_very_strong_password_for_web_login"
-
     ports:
       - "12808:12808"
-
     volumes:
       - ./config.yml:/app/config.yml
       - ./data:/app/data
