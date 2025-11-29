@@ -8,7 +8,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; color: #333; }
         .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .header { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
         .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: 600; }
@@ -21,12 +21,6 @@
         .status-indicator { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
         .status-online { background: #28a745; }
         .status-offline { background: #dc3545; }
-        .tab-container { margin-top: 20px; }
-        .tabs { display: flex; border-bottom: 1px solid #ddd; margin-bottom: 20px; }
-        .tab { padding: 10px 20px; cursor: pointer; border: 1px solid transparent; }
-        .tab.active { border: 1px solid #ddd; border-bottom: 1px solid white; border-radius: 5px 5px 0 0; background: white; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
         .proxy-test { display: flex; gap: 10px; align-items: end; }
         .proxy-test input { flex: 1; }
         .test-result { margin-top: 10px; padding: 10px; border-radius: 5px; }
@@ -40,129 +34,97 @@
     <div class="container">
         <div class="header">
             <h1>🤖 Telegram-115Bot 管理界面</h1>
-            <p>版本: v3.2.21 | 端口: 12808</p>
-            <div style="margin-top: 10px;">
+            <a href="/logout" style="color: #007bff; text-decoration: none;">退出登录</a>
+        </div>
+
+        <!-- 基本配置模块 -->
+        <div class="card">
+            <h3>📋 基本配置</h3>
+            <form id="basicConfigForm">
+                <div class="form-group">
+                    <label for="bot_token">Telegram Bot Token *</label>
+                    <input type="text" id="bot_token" name="bot_token" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="allowed_user">允许的用户ID *</label>
+                    <input type="text" id="allowed_user" name="allowed_user" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="115_app_id">115 App ID *</label>
+                    <input type="text" id="115_app_id" name="115_app_id" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="115_user_agent">115 User Agent</label>
+                    <input type="text" id="115_user_agent" name="115_user_agent">
+                </div>
+                
+                <button type="submit" class="success">💾 保存配置</button>
+            </form>
+        </div>
+
+        <!-- 系统状态和代理设置模块 -->
+        <div class="card">
+            <h3>📊 系统状态 & 🔌 代理设置</h3>
+            
+            <div style="margin-bottom: 15px;">
                 <span class="status-indicator" id="botStatus"></span>
                 <span id="statusText">检查状态中...</span>
             </div>
-            <a href="/logout" style="float: right; color: #007bff; text-decoration: none;">退出登录</a>
-        </div>
 
-        <div class="tabs">
-            <div class="tab active" onclick="switchTab('basic')">基本配置</div>
-            <div class="tab" onclick="switchTab('proxy')">代理设置</div>
-            <div class="tab" onclick="switchTab('status')">系统状态</div>
-        </div>
-
-        <!-- 基本配置标签 -->
-        <div id="basic-tab" class="tab-content active">
-            <div class="card">
-                <h3>📋 基本配置</h3>
-                <form id="basicConfigForm">
-                    <div class="form-group">
-                        <label for="bot_token">Telegram Bot Token *</label>
-                        <input type="text" id="bot_token" name="bot_token" placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="allowed_user">允许的用户ID *</label>
-                        <input type="text" id="allowed_user" name="allowed_user" placeholder="987654321" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="115_app_id">115 App ID *</label>
-                        <input type="text" id="115_app_id" name="115_app_id" placeholder="你的115应用ID" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="115_user_agent">115 User Agent</label>
-                        <input type="text" id="115_user_agent" name="115_user_agent" placeholder="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36">
-                    </div>
-                    
-                    <button type="submit" class="success">💾 保存配置</button>
-                </form>
-            </div>
-        </div>
-
-        <!-- 代理设置标签 -->
-        <div id="proxy-tab" class="tab-content">
-            <div class="card">
-                <h3>🔌 代理设置</h3>
-                <p style="margin-bottom: 15px; color: #666;">支持 HTTP/HTTPS/SOCKS5 代理格式</p>
-                
-                <div class="form-group">
-                    <label for="proxy_url">代理地址</label>
-                    <div class="proxy-test">
-                        <input type="text" id="proxy_url" placeholder="http://127.0.0.1:7890 或 socks5://127.0.0.1:1080">
-                        <button type="button" onclick="testProxy()" class="secondary">测试连接</button>
-                    </div>
-                    <div class="proxy-examples" style="margin-top: 5px; font-size: 12px; color: #666;">
-                        示例: http://127.0.0.1:7890, socks5://user:pass@127.0.0.1:1080, https://proxy.example.com:8080
-                    </div>
+            <div class="status-grid">
+                <div class="status-item">
+                    <strong>Bot运行状态</strong>
+                    <div id="botRunningStatus">检查中...</div>
                 </div>
-                
-                <div id="proxyTestResult" class="test-result" style="display: none;"></div>
-                
-                <div class="form-group">
-                    <label for="no_proxy">不经过代理的地址</label>
-                    <input type="text" id="no_proxy" name="no_proxy" placeholder="localhost,127.0.0.1,192.168.0.0/16">
+                <div class="status-item">
+                    <strong>115登录状态</strong>
+                    <div id="115LoginStatus">检查中...</div>
                 </div>
-                
-                <button type="button" onclick="saveProxyConfig()" class="success">💾 保存代理设置</button>
+                <div class="status-item">
+                    <strong>115用户ID</strong>
+                    <div id="115UserId">检查中...</div>
+                </div>
+                <div class="status-item">
+                    <strong>最后更新</strong>
+                    <div id="lastUpdate">检查中...</div>
+                </div>
             </div>
-        </div>
 
-        <!-- 系统状态标签 -->
-        <div id="status-tab" class="tab-content">
-            <div class="card">
-                <h3>📊 系统状态</h3>
-                <div class="status-grid">
-                    <div class="status-item">
-                        <strong>Bot运行状态</strong>
-                        <div id="botRunningStatus">检查中...</div>
-                    </div>
-                    <div class="status-item">
-                        <strong>115登录状态</strong>
-                        <div id="115LoginStatus">检查中...</div>
-                    </div>
-                    <div class="status-item">
-                        <strong>115用户ID</strong>
-                        <div id="115UserId">检查中...</div>
-                    </div>
-                    <div class="status-item">
-                        <strong>最后更新</strong>
-                        <div id="lastUpdate">检查中...</div>
-                    </div>
+            <div class="form-group">
+                <label for="proxy_url">代理地址</label>
+                <div class="proxy-test">
+                    <input type="text" id="proxy_url">
+                    <button type="button" onclick="testProxy()" class="secondary">测试连接</button>
                 </div>
-                <button onclick="refreshStatus()" class="secondary">🔄 刷新状态</button>
             </div>
+            
+            <div id="proxyTestResult" class="test-result" style="display: none;"></div>
+            
+            <div class="form-group">
+                <label for="no_proxy">不经过代理的地址</label>
+                <input type="text" id="no_proxy" name="no_proxy">
+            </div>
+            
+            <button type="button" onclick="saveProxyConfig()" class="success">💾 保存代理设置</button>
         </div>
     </div>
 
     <script>
-        // 标签切换
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            event.target.classList.add('active');
-            document.getElementById(tabName + '-tab').classList.add('active');
-        }
-
         // 加载配置
         async function loadConfig() {
             try {
                 const response = await fetch('/api/config');
                 const config = await response.json();
                 
-                // 填充表单
                 document.getElementById('bot_token').value = config.bot_token || '';
                 document.getElementById('allowed_user').value = config.allowed_user || '';
                 document.getElementById('115_app_id').value = config['115_app_id'] || '';
                 document.getElementById('115_user_agent').value = config['115_user_agent'] || '';
                 document.getElementById('no_proxy').value = config.no_proxy || '';
                 
-                // 代理设置
                 if (config.http_proxy) {
                     document.getElementById('proxy_url').value = config.http_proxy;
                 }
@@ -174,7 +136,6 @@
         // 保存基本配置
         document.getElementById('basicConfigForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             const formData = new FormData(e.target);
             const config = {
                 bot_token: formData.get('bot_token'),
@@ -182,14 +143,12 @@
                 115_app_id: formData.get('115_app_id'),
                 115_user_agent: formData.get('115_user_agent')
             };
-            
             try {
                 const response = await fetch('/api/config', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(config)
                 });
-                
                 const result = await response.json();
                 alert(result.success ? '配置保存成功！' : '保存失败: ' + result.message);
             } catch (error) {
@@ -237,11 +196,7 @@
             const proxyUrl = document.getElementById('proxy_url').value;
             const noProxy = document.getElementById('no_proxy').value;
             
-            const config = {
-                http_proxy: proxyUrl,
-                https_proxy: proxyUrl,
-                no_proxy: noProxy
-            };
+            const config = { http_proxy: proxyUrl, https_proxy: proxyUrl, no_proxy: noProxy };
             
             try {
                 const response = await fetch('/api/config', {
@@ -274,7 +229,6 @@
                     statusText.textContent = 'Bot未运行';
                 }
                 
-                // 更新状态标签页
                 document.getElementById('botRunningStatus').textContent = status.bot_running ? '✅ 运行中' : '❌ 未运行';
                 document.getElementById('115LoginStatus').textContent = status['115_logged_in'] ? '✅ 已登录' : '❌ 未登录';
                 document.getElementById('115UserId').textContent = status['115_uid'] || '未获取';
@@ -287,16 +241,10 @@
             }
         }
 
-        // 刷新状态
-        function refreshStatus() {
-            updateStatus();
-        }
-
         // 页面加载时初始化
         document.addEventListener('DOMContentLoaded', function() {
             loadConfig();
             updateStatus();
-            // 每30秒自动更新状态
             setInterval(updateStatus, 30000);
         });
     </script>
