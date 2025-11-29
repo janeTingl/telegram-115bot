@@ -3,6 +3,7 @@
 import yaml
 import logging
 import os
+import requests
 
 # 配置日志
 logging.basicConfig(
@@ -43,7 +44,6 @@ class OpenAPI115:
     def get_qrcode(self):
         """获取登录二维码"""
         try:
-            import requests
             url = "https://passportapi.115.com/app/1.0/web/1.0/login/qrcode"
             headers = {
                 "User-Agent": self.user_agent,
@@ -64,7 +64,6 @@ class OpenAPI115:
             return False
             
         try:
-            import requests
             url = f"https://passportapi.115.com/app/1.0/web/1.0/login/qrcode/status?qrcode={self.qrcode_token}"
             headers = {
                 "User-Agent": self.user_agent,
@@ -87,7 +86,6 @@ class OpenAPI115:
             return False, "未登录，请先使用 /auth 登录"
             
         try:
-            import requests
             api_url = "https://115.com/web/lixian/?ct=lixian&ac=add_task_url"
             headers = {
                 "User-Agent": self.user_agent,
@@ -114,7 +112,7 @@ def load_yaml_config():
     """加载YAML配置"""
     global bot_config
     try:
-        config_path = "/app/config/config.yaml"
+        config_path = "/app/data/config.yaml"
         if not os.path.exists(config_path):
             config_path = "config.yaml"
             
@@ -124,7 +122,6 @@ def load_yaml_config():
         return True
     except Exception as e:
         logger.error(f"配置文件加载失败: {e}")
-        # 使用环境变量作为备选
         bot_config = {
             'bot_token': os.getenv('BOT_TOKEN', ''),
             'allowed_user': os.getenv('ALLOWED_USER', ''),
@@ -153,7 +150,5 @@ def init():
         logger.error("配置加载失败，应用无法启动")
         return False
     
-    # 创建必要目录
     os.makedirs(IMAGE_PATH, exist_ok=True)
-    
     return True
