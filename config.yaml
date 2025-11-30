@@ -1,0 +1,17 @@
+# Telegram-115Bot 配置文件模板
+bot_token: "你的Telegram机器人Token"
+allowed_users: 
+  - "你的用户ID"
+
+115_app_id: "你的115AppID"
+115_user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+
+web_username: "admin"
+web_password: "ChangeThisPassword123!"
+
+http_proxy: ""
+https_proxy: ""
+no_proxy: "localhost,127.0.0.1,::1"
+
+image_path: "/app/data/images"
+web_port: 12808

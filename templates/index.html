@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram-115Bot 管理界面</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
+        .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; }
+        input, textarea, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 14px; }
+        button:hover { background: #0056b3; }
+        button.secondary { background: #6c757d; }
+        button.success { background: #28a745; }
+        button.danger { background: #dc3545; }
+        .status-indicator { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
+        .status-online { background: #28a745; }
+        .status-offline { background: #dc3545; }
+        .proxy-test { display: flex; gap: 10px; align-items: end; }
+        .proxy-test input { flex: 1; }
+        .test-result { margin-top: 10px; padding: 10px; border-radius: 5px; }
+        .test-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .test-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .status-item { background: #f8f9fa; padding: 15px; border-radius: 5px; border-left: 4px solid #007bff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Telegram-115Bot 管理界面</h1>
+            <a href="/logout" style="color: #007bff; text-decoration: none;">退出登录</a>
+        </div>
+
+        <!-- 基本配置模块 -->
+        <div class="card">
+            <h3>📋 基本配置</h3>
+            <form id="basicConfigForm">
+                <div class="form-group">
+                    <label for="bot_token">Telegram Bot Token *</label>
+                    <input type="text" id="bot_token" name="bot_token" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="allowed_user">允许的用户ID *</label>
+                    <input type="text" id="allowed_user" name="allowed_user" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="115_app_id">115 App ID *</label>
+                    <input type="text" id="115_app_id" name="115_app_id" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="115_user_agent">115 User Agent</label>
+                    <input type="text" id="115_user_agent" name="115_user_agent">
+                </div>
+                
+                <button type="submit" class="success">💾 保存配置</button>
+            </form>
+        </div>
+
+        <!-- 系统状态和代理设置模块 -->
+        <div class="card">
+            <h3>📊 系统状态 & 🔌 代理设置</h3>
+            
+            <div style="margin-bottom: 15px;">
+                <span class="status-indicator" id="botStatus"></span>
+                <span id="statusText">检查状态中...</span>
+            </div>
+
+            <div class="status-grid">
+                <div class="status-item">
+                    <strong>Bot运行状态</strong>
+                    <div id="botRunningStatus">检查中...</div>
+                </div>
+                <div class="status-item">
+                    <strong>115登录状态</strong>
+                    <div id="115LoginStatus">检查中...</div>
+                </div>
+                <div class="status-item">
+                    <strong>115用户ID</strong>
+                    <div id="115UserId">检查中...</div>
+                </div>
+                <div class="status-item">
+                    <strong>最后更新</strong>
+                    <div id="lastUpdate">检查中...</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="proxy_url">代理地址</label>
+                <div class="proxy-test">
+                    <input type="text" id="proxy_url">
+                    <button type="button" onclick="testProxy()" class="secondary">测试连接</button>
+                </div>
+            </div>
+            
+            <div id="proxyTestResult" class="test-result" style="display: none;"></div>
+            
+            <div class="form-group">
+                <label for="no_proxy">不经过代理的地址</label>
+                <input type="text" id="no_proxy" name="no_proxy">
+            </div>
+            
+            <button type="button" onclick="saveProxyConfig()" class="success">💾 保存代理设置</button>
+        </div>
+    </div>
+
+    <script>
+        // 加载配置
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                
+                document.getElementById('bot_token').value = config.bot_token || '';
+                document.getElementById('allowed_user').value = config.allowed_user || '';
+                document.getElementById('115_app_id').value = config['115_app_id'] || '';
+                document.getElementById('115_user_agent').value = config['115_user_agent'] || '';
+                document.getElementById('no_proxy').value = config.no_proxy || '';
+                
+                if (config.http_proxy) {
+                    document.getElementById('proxy_url').value = config.http_proxy;
+                }
+            } catch (error) {
+                console.error('加载配置失败:', error);
+            }
+        }
+
+        // 保存基本配置
+        document.getElementById('basicConfigForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const config = {
+                bot_token: formData.get('bot_token'),
+                allowed_user: formData.get('allowed_user'),
+                115_app_id: formData.get('115_app_id'),
+                115_user_agent: formData.get('115_user_agent')
+            };
+            try {
+                const response = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                const result = await response.json();
+                alert(result.success ? '配置保存成功！' : '保存失败: ' + result.message);
+            } catch (error) {
+                alert('保存失败: ' + error.message);
+            }
+        });
+
+        // 测试代理
+        async function testProxy() {
+            const proxyUrl = document.getElementById('proxy_url').value;
+            const resultDiv = document.getElementById('proxyTestResult');
+            
+            if (!proxyUrl) {
+                resultDiv.innerHTML = '<div class="test-error">请输入代理地址</div>';
+                resultDiv.style.display = 'block';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div>测试连接中...</div>';
+            resultDiv.style.display = 'block';
+            
+            try {
+                const response = await fetch('/api/proxy/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ proxy_url: proxyUrl })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    resultDiv.innerHTML = `<div class="test-success">
+                        ✅ ${result.message}<br>
+                        IP信息: ${JSON.stringify(result.ip_info)}
+                    </div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="test-error">❌ ${result.message}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-error">❌ 测试失败: ${error.message}</div>`;
+            }
+        }
+
+        // 保存代理配置
+        async function saveProxyConfig() {
+            const proxyUrl = document.getElementById('proxy_url').value;
+            const noProxy = document.getElementById('no_proxy').value;
+            
+            const config = { http_proxy: proxyUrl, https_proxy: proxyUrl, no_proxy: noProxy };
+            
+            try {
+                const response = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                const result = await response.json();
+                alert(result.success ? '代理设置保存成功！' : '保存失败: ' + result.message);
+            } catch (error) {
+                alert('保存失败: ' + error.message);
+            }
+        }
+
+        // 更新状态显示
+        async function updateStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const status = await response.json();
+                
+                const statusIndicator = document.getElementById('botStatus');
+                const statusText = document.getElementById('statusText');
+                
+                if (status.bot_running) {
+                    statusIndicator.className = 'status-indicator status-online';
+                    statusText.textContent = 'Bot运行正常';
+                } else {
+                    statusIndicator.className = 'status-indicator status-offline';
+                    statusText.textContent = 'Bot未运行';
+                }
+                
+                document.getElementById('botRunningStatus').textContent = status.bot_running ? '✅ 运行中' : '❌ 未运行';
+                document.getElementById('115LoginStatus').textContent = status['115_logged_in'] ? '✅ 已登录' : '❌ 未登录';
+                document.getElementById('115UserId').textContent = status['115_uid'] || '未获取';
+                document.getElementById('lastUpdate').textContent = new Date(status.timestamp).toLocaleString();
+                
+            } catch (error) {
+                console.error('获取状态失败:', error);
+                document.getElementById('botStatus').className = 'status-indicator status-offline';
+                document.getElementById('statusText').textContent = '状态检查失败';
+            }
+        }
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadConfig();
+            updateStatus();
+            setInterval(updateStatus, 30000);
+        });
+    </script>
+</body>
+</html>

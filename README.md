@@ -1,125 +1,108 @@
 # Telegram-115Bot
 
-一个基于 Telegram Bot 的 115 网盘管理工具，支持文件下载、视频保存到115网盘。
+一个基于Docker的Telegram 115网盘管理机器人。
 
-### 本项目forks qiqiandfei大佬的Telegram-115Bot项目修改而来。
----
+## 快速开始
 
-## 🚀 功能特性
+1. 配置环境变量：
+   ```bash
+   cp .env.example .env
+   # 编辑 .env 文件填写实际配置
+#!/bin/bash
+echo "🚀 设置 Telegram-115Bot 开发环境..."
 
-- ✅ 115网盘授权 - 扫码登录115账号  
-- ✅ 文件下载 - 支持磁力链接、ed2k、迅雷链接  
-- ✅ 视频保存 - 直接保存 Telegram 视频到 115 网盘  
-- ✅ 任务管理 - 查看和管理下载任务  
-- ✅ 多平台支持 - 支持 AMD64 和 ARM64 架构  
+# 安装 Docker Compose
+sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
 
----
+# 创建项目结构（调用主脚本）
+if [ -f "../setup-project.sh" ]; then
+    chmod +x ../setup-project.sh
+    ../setup-project.sh
+else
+    echo "❌ setup-project.sh 未找到"
+fi
 
-## 📋 命令列表
+echo "✅ 开发环境设置完成！"
+#!/bin/bash
 
-| 命令 | 功能 | 说明 |
-|------|------|------|
-/start | 显示帮助信息 | 查看完整使用说明  
-/auth | 115扫码授权 | 首次使用或重新授权  
-/reload | 重载配置 | 应用配置变更  
-/rl | 查看重试列表 | 管理失败任务  
-/q | 取消当前会话 | 退出当前操作  
+# Telegram-115Bot GitHub 一键初始化脚本
+# 自动创建仓库、提交代码、设置 Secrets
 
----
+set -e
 
-## 🐳 Docker 部署
+# 颜色定义
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
 
-### 方法 1：Docker Run
+# 日志函数
+log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
+log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
+# 检查 Git
+check_git() {
+    if ! command -v git &> /dev/null; then
+        log_error "Git 未安装！"
+        exit 1
+    fi
+    log_success "Git 检查通过"
+}
 
-# 创建配置目录
-```
-mkdir -p telegram-bot-data
-cd telegram-bot-data
-```
+# 初始化 Git 仓库
+init_git() {
+    log_info "初始化 Git 仓库..."
+    
+    if [ ! -d ".git" ]; then
+        git init
+        git branch -M main
+        log_success "Git 仓库初始化完成"
+    else
+        log_info "Git 仓库已存在"
+    fi
+}
 
-# 创建配置文件
-```
-cat > config.yaml << EOF
-bot_token: "你的Telegram机器人Token"
-allowed_user: "你的Telegram用户ID"
-115_app_id: "你的115AppID"
-115_user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-EOF
-```
-# 运行容器
-### Docker Run
+# 创建 .gitignore
+create_gitignore() {
+    log_info "创建 .gitignore..."
+    
+    cat > .gitignore << 'EOF'
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+env.bak/
+venv.bak/
 
-```bash
-docker run -d \
-  --name telegram-115bot \
-  -v /vol1/1000/telegram-115bot/data:/app/data \
-  -v /vol1/1000/telegram-115bot/config.yaml:/app/config.yaml \
-  -e TZ=Asia/Shanghai \
-  -e HTTP_PROXY=http://127.0.0.1:7890 \
-  -e http_proxy=http://127.0.0.1:7890 \
-  -e NO_PROXY=localhost,127.0.0.1,192.168.0.0/16 \
-  yongzz668/telegram-115bot:latest
-```
+# Docker
+data/
+*.env
+.env.local
+.env.production
 
-### Docker Compose
+# Logs
+*.log
+logs/
 
-```yaml
-version: '3.8'
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
 
-services:
-  telegram-115bot:
-    image: yongzz668/telegram-115bot:latest
-    container_name: telegram-115bot
-    restart: unless-stopped
-    volumes:
-      - /vol1/1000/telegram-115bot/data:/app/data
-      - /vol1/1000/telegram-115bot/config.yaml:/app/config.yaml
-    environment:
-      - TZ=Asia/Shanghai
+# OS
+.DS_Store
+Thumbs.db
 
-      # HTTP 代理
-      - HTTP_PROXY=http://127.0.0.1:7890
-      - http_proxy=http://127.0.0.1:7890
-
-      # 可选：不经过代理的地址
-      - NO_PROXY=localhost,127.0.0.1,192.168.0.0/16
-```
-      🔧 配置获取
-
-1. 获取 Telegram Bot Token
-	1.	Telegram 搜索 @BotFather
-	2.	发送 /newbot
-	3.	按提示设置名称
-	4.	获取 API Token
-
-2. 获取 Telegram 用户ID
-	1.	搜索 @userinfobot
-	2.	发送任意消息即可获取 ID
-
-
-⸻
-
-📱 使用流程
-	1.	部署后，在 Telegram 中找到你的 Bot
-	2.	发送 /auth 获取 115 登录二维码
-	3.	用 115 手机 App 扫码登录
-	4.	之后即可使用：
-	•	发送磁力链接自动下载
-	•	转发视频自动保存
-	•	/rl 查看失败任务
-
-📄 许可证
-
-MIT License
-
-⸻
-
-🤝 贡献
-
-欢迎提交 Issue 和 Pull Request！
-
-⸻
-
-项目地址： GitHub Repository
-Docker 镜像： yongzz668/telegram-115bot:latest
+# Temporary files
+tmp/
+temp/
