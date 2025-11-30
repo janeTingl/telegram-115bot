@@ -1,17 +1,23 @@
-# Telegram-115Bot 配置文件模板
-bot_token: "你的Telegram机器人Token"
-allowed_users: 
-  - "你的用户ID"
+# Telegram-115Bot 配置文件
+# 首次启动会自动创建空配置，可通过Web界面填写
 
-115_app_id: "你的115AppID"
+# Telegram Bot配置（通过Web界面填写）
+bot_token: ""
+allowed_users: []
+
+# 115网盘配置（通过Web界面填写）
+115_app_id: ""
 115_user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 
+# Web管理界面配置（可通过环境变量设置）
 web_username: "admin"
-web_password: "ChangeThisPassword123!"
+web_password: "admin123"
 
+# 网络代理配置（可选，通过Web界面填写）
 http_proxy: ""
 https_proxy: ""
 no_proxy: "localhost,127.0.0.1,::1"
 
+# 系统配置
 image_path: "/app/data/images"
 web_port: 12808
