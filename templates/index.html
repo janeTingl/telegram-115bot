@@ -5,38 +5,310 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Telegram-115Bot 管理界面</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; color: #333; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .header { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
-        .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: 600; }
-        input, textarea, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; }
-        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 14px; }
-        button:hover { background: #0056b3; }
-        button.secondary { background: #6c757d; }
-        button.success { background: #28a745; }
-        button.danger { background: #dc3545; }
-        .status-indicator { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
-        .status-online { background: #28a745; }
-        .status-offline { background: #dc3545; }
-        .proxy-test { display: flex; gap: 10px; align-items: end; }
-        .proxy-test input { flex: 1; }
-        .test-result { margin-top: 10px; padding: 10px; border-radius: 5px; }
-        .test-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .test-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .status-item { background: #f8f9fa; padding: 15px; border-radius: 5px; border-left: 4px solid #007bff; }
-        small { color: #666; font-size: 12px; }
-        .config-guide { margin-top: 15px; padding: 15px; background: #fff3cd; border-radius: 5px; border-left: 4px solid #ffc107; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: rgba(255, 255, 255, 0.9);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        /* 背景装饰元素 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+            animation: float 20s infinite linear;
+            z-index: -1;
+        }
+        
+        @keyframes float {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(-50px, -50px) rotate(360deg); }
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 
+                0 10px 25px rgba(0,0,0,0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* 玻璃光泽效果 */
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, 
+                rgba(255,255,255,0) 0%, 
+                rgba(255,255,255,0.6) 50%, 
+                rgba(255,255,255,0) 100%);
+            z-index: 1;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 
+                0 10px 25px rgba(0,0,0,0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* 玻璃光泽效果 */
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, 
+                rgba(255,255,255,0) 0%, 
+                rgba(255,255,255,0.6) 50%, 
+                rgba(255,255,255,0) 100%);
+            z-index: 1;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            font-size: 14px;
+            color: white;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+        
+        input::placeholder, textarea::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+        }
+        
+        button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(255, 255, 255, 0.2), 
+                transparent);
+            transition: left 0.5s;
+        }
+        
+        button:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:hover::before {
+            left: 100%;
+        }
+        
+        button.secondary {
+            background: rgba(108, 117, 125, 0.3);
+        }
+        
+        button.success {
+            background: rgba(40, 167, 69, 0.3);
+        }
+        
+        button.danger {
+            background: rgba(220, 53, 69, 0.3);
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .status-online {
+            background: #28a745;
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.7);
+        }
+        
+        .status-offline {
+            background: #dc3545;
+            box-shadow: 0 0 10px rgba(220, 53, 69, 0.7);
+        }
+        
+        .proxy-test {
+            display: flex;
+            gap: 10px;
+            align-items: end;
+        }
+        
+        .proxy-test input {
+            flex: 1;
+        }
+        
+        .test-result {
+            margin-top: 10px;
+            padding: 12px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+        
+        .test-success {
+            background: rgba(40, 167, 69, 0.2);
+            color: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(40, 167, 69, 0.3);
+        }
+        
+        .test-error {
+            background: rgba(220, 53, 69, 0.2);
+            color: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .status-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+        
+        small {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+        }
+        
+        .config-guide {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(255, 193, 7, 0.15);
+            border-radius: 10px;
+            border-left: 4px solid rgba(255, 193, 7, 0.5);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+        
+        h1, h3 {
+            color: white;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+        
+        a {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+        
+        a:hover {
+            color: white;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        
+        ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        li {
+            margin-bottom: 5px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🤖 Telegram-115Bot 管理界面</h1>
-            <a href="/logout" style="color: #007bff; text-decoration: none;">退出登录</a>
+            <a href="/logout">退出登录</a>
         </div>
 
         <!-- 配置状态卡片 -->
@@ -63,7 +335,7 @@
             
             <div class="config-guide">
                 <strong>💡 使用说明：</strong>
-                <ol style="margin: 10px 0; padding-left: 20px;">
+                <ol>
                     <li>在下方填写必要的配置信息</li>
                     <li>点击"保存配置"应用设置</li>
                     <li>配置会自动生效，无需重启服务</li>
@@ -134,7 +406,7 @@
             <div class="form-group">
                 <label for="proxy_url">代理地址</label>
                 <div class="proxy-test">
-                    <input type="text" id="proxy_url">
+                    <input type="text" id="proxy_url" placeholder="例如: http://proxy.example.com:8080">
                     <button type="button" onclick="testProxy()" class="secondary">测试连接</button>
                 </div>
             </div>
@@ -143,7 +415,7 @@
             
             <div class="form-group">
                 <label for="no_proxy">不经过代理的地址</label>
-                <input type="text" id="no_proxy" name="no_proxy">
+                <input type="text" id="no_proxy" name="no_proxy" placeholder="例如: localhost,127.0.0.1">
             </div>
             
             <button type="button" onclick="saveProxyConfig()" class="success">💾 保存代理设置</button>
