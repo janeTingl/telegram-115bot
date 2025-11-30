@@ -28,6 +28,8 @@
         .test-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
         .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .status-item { background: #f8f9fa; padding: 15px; border-radius: 5px; border-left: 4px solid #007bff; }
+        small { color: #666; font-size: 12px; }
+        .config-guide { margin-top: 15px; padding: 15px; background: #fff3cd; border-radius: 5px; border-left: 4px solid #ffc107; }
     </style>
 </head>
 <body>
@@ -37,31 +39,67 @@
             <a href="/logout" style="color: #007bff; text-decoration: none;">退出登录</a>
         </div>
 
+        <!-- 配置状态卡片 -->
+        <div class="card">
+            <h3>⚙️ 配置状态</h3>
+            <div class="status-grid">
+                <div class="status-item">
+                    <strong>Bot Token</strong>
+                    <div id="botTokenStatus">检查中...</div>
+                </div>
+                <div class="status-item">
+                    <strong>115 App ID</strong>
+                    <div id="115AppIdStatus">检查中...</div>
+                </div>
+                <div class="status-item">
+                    <strong>用户权限</strong>
+                    <div id="userConfigStatus">检查中...</div>
+                </div>
+                <div class="status-item">
+                    <strong>配置路径</strong>
+                    <div>/app/data/config.yaml</div>
+                </div>
+            </div>
+            
+            <div class="config-guide">
+                <strong>💡 使用说明：</strong>
+                <ol style="margin: 10px 0; padding-left: 20px;">
+                    <li>在下方填写必要的配置信息</li>
+                    <li>点击"保存配置"应用设置</li>
+                    <li>配置会自动生效，无需重启服务</li>
+                </ol>
+            </div>
+        </div>
+
         <!-- 基本配置模块 -->
         <div class="card">
             <h3>📋 基本配置</h3>
             <form id="basicConfigForm">
                 <div class="form-group">
                     <label for="bot_token">Telegram Bot Token *</label>
-                    <input type="text" id="bot_token" name="bot_token" required>
+                    <input type="text" id="bot_token" name="bot_token" placeholder="从 @BotFather 获取" required>
+                    <small>如何获取：在Telegram中搜索 @BotFather，创建机器人后获取Token</small>
                 </div>
                 
                 <div class="form-group">
-                    <label for="allowed_user">允许的用户ID *</label>
-                    <input type="text" id="allowed_user" name="allowed_user" required>
+                    <label for="allowed_users">允许的用户ID *</label>
+                    <input type="text" id="allowed_users" name="allowed_users" placeholder="多个用户用逗号分隔" required>
+                    <small>如何获取：在Telegram中向 @userinfobot 发送消息获取用户ID，多个用户用逗号分隔</small>
                 </div>
                 
                 <div class="form-group">
                     <label for="115_app_id">115 App ID *</label>
-                    <input type="text" id="115_app_id" name="115_app_id" required>
+                    <input type="text" id="115_app_id" name="115_app_id" placeholder="从115开放平台获取" required>
+                    <small>获取地址：https://open.115.com/</small>
                 </div>
                 
                 <div class="form-group">
                     <label for="115_user_agent">115 User Agent</label>
-                    <input type="text" id="115_user_agent" name="115_user_agent">
+                    <input type="text" id="115_user_agent" name="115_user_agent" placeholder="可选，保持默认即可">
                 </div>
                 
                 <button type="submit" class="success">💾 保存配置</button>
+                <button type="button" onclick="validateConfig()" class="secondary">🔍 验证配置</button>
             </form>
         </div>
 
@@ -113,14 +151,85 @@
     </div>
 
     <script>
+        // 检查配置状态
+        async function checkConfigStatus() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                
+                // 更新配置状态显示
+                document.getElementById('botTokenStatus').textContent = 
+                    config.bot_token ? '✅ 已配置' : '❌ 未配置';
+                document.getElementById('115AppIdStatus').textContent = 
+                    config['115_app_id'] ? '✅ 已配置' : '❌ 未配置';
+                
+                // 检查用户配置
+                const allowedUsers = config.allowed_users || [];
+                if (allowedUsers.length > 0) {
+                    document.getElementById('userConfigStatus').textContent = 
+                        `✅ 已配置 ${allowedUsers.length} 个用户`;
+                } else {
+                    document.getElementById('userConfigStatus').textContent = '❌ 未配置';
+                }
+                
+            } catch (error) {
+                console.error('检查配置状态失败:', error);
+                document.getElementById('botTokenStatus').textContent = '❌ 检查失败';
+                document.getElementById('115AppIdStatus').textContent = '❌ 检查失败';
+                document.getElementById('userConfigStatus').textContent = '❌ 检查失败';
+            }
+        }
+
+        // 验证配置格式
+        function validateConfig() {
+            const botToken = document.getElementById('bot_token').value;
+            const allowedUsers = document.getElementById('allowed_users').value;
+            const appId = document.getElementById('115_app_id').value;
+            
+            let errors = [];
+            
+            if (!botToken) {
+                errors.push('Bot Token 不能为空');
+            } else if (!botToken.includes(':')) {
+                errors.push('Bot Token 格式不正确，应包含冒号');
+            }
+            
+            if (!allowedUsers) {
+                errors.push('用户ID 不能为空');
+            } else {
+                const users = allowedUsers.split(',').map(u => u.trim()).filter(u => u);
+                if (users.length === 0) {
+                    errors.push('至少需要一个有效的用户ID');
+                }
+                for (let user of users) {
+                    if (!/^\d+$/.test(user)) {
+                        errors.push(`用户ID "${user}" 不是有效的数字`);
+                    }
+                }
+            }
+            
+            if (!appId) {
+                errors.push('115 App ID 不能为空');
+            }
+            
+            if (errors.length > 0) {
+                alert('配置验证失败：\n\n' + errors.join('\n'));
+            } else {
+                alert('✅ 配置格式验证通过！可以保存配置。');
+            }
+        }
+
         // 加载配置
         async function loadConfig() {
             try {
                 const response = await fetch('/api/config');
                 const config = await response.json();
                 
+                // 填充表单
                 document.getElementById('bot_token').value = config.bot_token || '';
-                document.getElementById('allowed_user').value = config.allowed_user || '';
+                document.getElementById('allowed_users').value = Array.isArray(config.allowed_users) 
+                    ? config.allowed_users.join(', ') 
+                    : (config.allowed_users || '');
                 document.getElementById('115_app_id').value = config['115_app_id'] || '';
                 document.getElementById('115_user_agent').value = config['115_user_agent'] || '';
                 document.getElementById('no_proxy').value = config.no_proxy || '';
@@ -128,6 +237,10 @@
                 if (config.http_proxy) {
                     document.getElementById('proxy_url').value = config.http_proxy;
                 }
+                
+                // 检查配置状态
+                await checkConfigStatus();
+                
             } catch (error) {
                 console.error('加载配置失败:', error);
             }
@@ -137,12 +250,19 @@
         document.getElementById('basicConfigForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
+            
+            // 处理用户ID数组
+            const allowedUsers = formData.get('allowed_users').split(',')
+                .map(user => user.trim())
+                .filter(user => user);
+            
             const config = {
                 bot_token: formData.get('bot_token'),
-                allowed_user: formData.get('allowed_user'),
+                allowed_users: allowedUsers,  // 保存为数组
                 115_app_id: formData.get('115_app_id'),
-                115_user_agent: formData.get('115_user_agent')
+                115_user_agent: formData.get('115_user_agent') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
             };
+            
             try {
                 const response = await fetch('/api/config', {
                     method: 'POST',
@@ -150,9 +270,16 @@
                     body: JSON.stringify(config)
                 });
                 const result = await response.json();
-                alert(result.success ? '配置保存成功！' : '保存失败: ' + result.message);
+                
+                if (result.success) {
+                    alert('✅ 配置保存成功！\n\n配置已生效，可以使用机器人功能了。');
+                    // 更新状态显示
+                    await checkConfigStatus();
+                } else {
+                    alert('❌ 保存失败: ' + result.message);
+                }
             } catch (error) {
-                alert('保存失败: ' + error.message);
+                alert('❌ 保存失败: ' + error.message);
             }
         });
 
@@ -246,6 +373,7 @@
             loadConfig();
             updateStatus();
             setInterval(updateStatus, 30000);
+            setInterval(checkConfigStatus, 15000); // 每15秒检查一次配置状态
         });
     </script>
 </body>
