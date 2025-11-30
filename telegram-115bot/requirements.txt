@@ -1,9 +1,0 @@
-python-telegram-bot>=20.0
-requests
-pyyaml
-certifi
-chardet
-idna
-urllib3
-qrcode[pil]
-flask
