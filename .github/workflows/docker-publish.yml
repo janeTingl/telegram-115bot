@@ -1,0 +1,41 @@
+name: Build and Push Multi-Arch Docker Image
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 1. 安装 QEMU (支持 ARM64 模拟)
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      
+      # 2. 安装 Buildx (支持多平台构建)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 3. 登录 Docker Hub (使用 GitHub Secrets)
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }} # 这里是 Docker Hub 的 Access Token
+
+      # 4. 构建并推送最终镜像
+      - name: Build and push multi-arch image
+        uses: docker/build-push-action@v5
+        with:
+          # 核心修复点：使用根目录作为构建上下文，并指定 AMD64 和 ARM64 平台
+          context: . 
+          platforms: linux/amd64,linux/arm64 
+          push: true
+          # 替换为你的 Docker Hub 用户名
+          tags: ${{ secrets.DOCKER_USERNAME }}/telegram-115bot:latest
+          # 使用 GitHub Actions 缓存来加速未来的构建
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
