@@ -24,7 +24,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }} # 这里是 Docker Hub 的 Access Token
+          password: ${{ secrets.DOCKERHUB_TOKEN }} # 这里是 Docker Hub 的 Access Token
 
       # 4. 构建并推送最终镜像
       - name: Build and push multi-arch image
