@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  115-bot:
+    build: .
+    image: 115-bot-admin:latest
+    container_name: 115-bot-admin
+    restart: unless-stopped
+    ports:
+      - "12808:12808" # 管理后台端口
+    volumes:
+      - ./data:/data  # 持久化配置数据
+    environment:
+      - TZ=Asia/Shanghai
