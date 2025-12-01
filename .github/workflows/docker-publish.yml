@@ -23,7 +23,7 @@ jobs:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }} # 这里是 Docker Hub 的 Access Token
 
       # 4. 构建并推送最终镜像
@@ -35,7 +35,7 @@ jobs:
           platforms: linux/amd64,linux/arm64 
           push: true
           # 替换为你的 Docker Hub 用户名
-          tags: ${{ secrets.DOCKER_USERNAME }}/telegram-115bot:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/telegram-115bot:latest
           # 使用 GitHub Actions 缓存来加速未来的构建
           cache-from: type=gha
           cache-to: type=gha,mode=max
