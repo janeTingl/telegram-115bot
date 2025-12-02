@@ -6,4 +6,4 @@ aiohttp==3.10.5
 pyotp==2.9.0
 pycryptodome==3.21.0
 PyYAML==6.0.2
-p115client==0.13.1
+p115client==0.0.8.1
