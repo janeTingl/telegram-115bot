@@ -8,6 +8,7 @@ services:
       - "12808:12808"
     volumes:
       - ./backend/config.json:/app/config.json
-      - ./backend/backend.log:/app/backend.log
       - ./backend/uploads:/app/uploads
-      - ./backend/tasks:/app/tasks
+      - ./backend/backend.log:/app/backend.log
+      - ./backend/secrets.db:/app/secrets.db
+      - ./backend/data.db:/app/data.db
