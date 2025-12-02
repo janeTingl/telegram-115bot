@@ -1,30 +1,13 @@
-version: '3.8'
-
+version: "3.8"
 services:
-  115-bot-admin:
-    container_name: 115-bot-admin
-    build:
-      context: .
-      dockerfile: Dockerfile
-    
-    # 1. 明确工作目录
-    working_dir: /app
-    
-    # 2. 启动命令 (去掉了 ls 调试命令)
-    # --reload 适合开发，如果你在 NAS 上觉得占用高，可以去掉 --reload
-    command: uvicorn backend.main:app --host 0.0.0.0 --port 12808 --reload
-    
+  backend:
+    build: ./backend
+    container_name: telegram_115_backend
+    restart: unless-stopped
     ports:
       - "12808:12808"
-    
     volumes:
-      # 3. 核心：相对路径，全平台通用
-      - .:/app
-    
-    environment:
-      - TZ=Asia/Shanghai
-      - PYTHONDONTWRITEBYTECODE=1
-      # 4. 核心：防止找不到模块
-      - PYTHONPATH=/app
-    
-    restart: always
+      - ./backend/config.json:/app/config.json
+      - ./backend/backend.log:/app/backend.log
+      - ./backend/uploads:/app/uploads
+      - ./backend/tasks:/app/tasks
