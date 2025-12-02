@@ -457,3 +457,5 @@ if __name__ == "__main__":
         reload=reload,        # 生产环境建议关闭
         log_level="info"
     )
+    from fastapi.staticfiles import StaticFiles
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
