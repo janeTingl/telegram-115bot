@@ -1,17 +1,18 @@
 FROM python:3.12-slim
 
-WORKDIR /app
-
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential libffi-dev libssl-dev git && \
-    rm -rf /var/lib/apt/lists/*
+    build-essential libffi-dev libssl-dev git \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
-RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+WORKDIR /app/backend
 
-# 复制后端与前端（若前端在 repo 中）
-COPY . .
+COPY backend/requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+COPY backend .
+
+RUN mkdir -p /app/uploads && chmod 777 /app/uploads
 
 EXPOSE 12808
 
