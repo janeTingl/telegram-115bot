@@ -1,29 +1,25 @@
-FROM node:20-alpine AS frontend
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --omit=dev
-COPY . .
-RUN npm run build
-
 FROM python:3.12-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
+# 装一大堆东西，保证什么都能装上
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential gcc g++ make git curl libffi-dev libssl-dev nodejs npm \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt \
-    && pip install whitenoise
+# 复制全部文件（包括前端所有东西）
+COPY . .
 
-COPY backend ./backend
-COPY --from=frontend /app/dist ./static
+# 构建前端
+RUN npm install && npm run build
 
-# 彻底不管任何可能不存在的文件
-RUN touch config.json zid.yml
+# 安装后端依赖
+RUN pip install --upgrade pip
+RUN pip install -r backend/requirements.txt
+RUN pip install whitenoise
 
-RUN mkdir -p uploads && chmod 777 uploads
+# 把前端 dist 挂到后端
+RUN mv dist backend/static 2>/dev/null || mv build backend/static 2>/dev/null || true
 
 EXPOSE 12808
 
