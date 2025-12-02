@@ -7,12 +7,21 @@ RUN npm run build
 
 FROM python:3.12-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
+
 COPY backend/requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements.txt && pip install whitenoise
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt \
+    && pip install whitenoise
+
 COPY backend ./backend
 COPY --from=frontend /app/dist ./static
-COPY config.json zid.yml ./
+
+# 只复制肯定存在的 zid.yml，config.json 完全不碰
+COPY zid.yml ./ 2>/dev/null || true
+
 RUN mkdir -p uploads && chmod 777 uploads
+
 EXPOSE 12808
 CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "12808"]
