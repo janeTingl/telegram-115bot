@@ -359,17 +359,17 @@ export const CloudOrganizeView: React.FC = () => {
                   </div>
 
                   {config.cloud115.loginMethod === 'cookie' && (
-                    <div className="space-y-2">
-                       <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Cookie 字符串</label>
-                       <SensitiveInput
-                          multiline
-                          value={config.cloud115.cookies}
-                          onChange={(e) => updateNested('cloud115', 'cookies', e.target.value)}
-                          placeholder="UID=...; CID=...; SEID=..."
-                          className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-brand-500 outline-none font-mono text-sm leading-relaxed resize-none"
-                        />
-                    </div>
-                  )}
+  <div className="space-y-2">
+    <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Cookie 字符串</label>
+    <SensitiveInput
+      multiline
+      value={config.cloud115.cookies}
+      onChange={(e) => updateNested('cloud115', 'cookies', e.target.value)}
+      placeholder="UID=...; CID=...; SEID=..."
+      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-brand-500 outline-none font-mono text-sm leading-relaxed resize-none"
+    />
+  </div>
+)}
 
                   {(config.cloud115.loginMethod === 'qrcode' || config.cloud115.loginMethod === 'open_app') && (
                      <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-6 flex flex-col items-center justify-center bg-slate-50/50 dark:bg-slate-900/30">

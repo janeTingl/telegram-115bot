@@ -36,7 +36,7 @@ CONFIG_FILE = os.path.join(DATA_DIR, "config.json")
 
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Main")
 log_buffer = []
 
@@ -89,7 +89,7 @@ def reload_services(config):
         drive_openlist.init_config(
     ol["url"],
     ol.get("username"),
-    ol.get("password"))
+     ol.get("password"))
 
 # --- WebDAV 动态代理中间件 ---
 # 用于将 /dav 请求转发给动态生成的 WebDAV App
@@ -309,14 +309,14 @@ async def list_ol(
 @app.post("/api/trigger/organize")
 async def trig_org():
         asyncio.create_task(organizer.run_organize())
-        return {"status": "started", "msg": "整理任务已在后台启动"}
+    return {"status": "started", "msg": "整理任务已在后台启动"}
 
 @app.post("/api/trigger/strm")
 async def trig_strm():
         asyncio.create_task(strm_gen.generate_115_strm())
         asyncio.create_task(strm_gen.generate_openlist_strm())
-#     return {"status": "started", "msg": "STRM 生成任务已在后台启动"}
-# 
-# # --- 静态文件托管 (必须放在最后) ---
+    return {"status": "started", "msg": "STRM 生成任务已在后台启动"}
+
+# --- 静态文件托管 (必须放在最后) ---
 if os.path.exists("dist"):
     app.mount("/", StaticFiles(directory="dist", html=True), name="static")

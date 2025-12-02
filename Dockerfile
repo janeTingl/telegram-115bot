@@ -1,35 +1,25 @@
-# Stage 1: Build Frontend
-FROM node:20-alpine as frontend-builder
+FROM node:20-alpine AS frontend-builder
 WORKDIR /app
 COPY package.json ./
 RUN npm install
 COPY . .
-RUN npm run build
+# 修复前端路径，使用绝对路径
+RUN npm run build -- --base /
 
-# Stage 2: Runtime Backend
 FROM python:3.12-slim
 WORKDIR /app
-
-# 设置环境变量
+# 安装编译依赖，确保 cryptography 成功安装
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential libffi-dev libssl-dev gcc && rm -rf /var/lib/apt/lists/*
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-
-# 安装 Python 依赖
+ENV APP_DATA_DIR=/data
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
-# 复制后端代码
 COPY backend/ .
-# 复制前端构建产物
-COPY --from=frontend-builder /app/dist ./dist
-# 复制分类字典
+# 将 main.py 移动到 /app 根目录以匹配 CMD 启动命令
+RUN if [ -f backend/main.py ]; then mv backend/main.py . ; fi
 COPY zid.yml .
-
-# 创建数据目录
+COPY --from=frontend-builder /app/dist ./dist
 VOLUME /data
-
-# 暴露端口: 12808(WebUI/API)
 EXPOSE 12808
-
-# 启动命令
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "12808"]

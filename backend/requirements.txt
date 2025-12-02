@@ -17,3 +17,8 @@ sqlitetools
 fake-useragent
 wsgidav==4.0.0
 cheroot
+cryptography
+aiofiles
+python-multipart
+pyotp
+httpx

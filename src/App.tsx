@@ -71,7 +71,7 @@ const App: React.FC = () => {
                          const paths = data.results
                             .filter((m: any) => m.backdrop_path)
                             .slice(0, 5)
-                            .map((m: any) => `https://image.tmdb.org/t/p/original${m.backdrop_path}`);
+                            .map((m: any) => `https://image.tmdb.org/t/p/w1280${m.backdrop_path}`);
                          if (paths.length > 0) {
                              setBackdrops(paths);
                              loaded = true;
