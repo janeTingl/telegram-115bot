@@ -18,8 +18,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 COPY backend ./backend
 COPY --from=frontend /app/dist ./static
 
-# 只复制肯定存在的 zid.yml，config.json 完全不碰
-COPY zid.yml ./ 2>/dev/null || true
+COPY config.json zid.yml . 2>/dev/null || true
 
 RUN mkdir -p uploads && chmod 777 uploads
 
