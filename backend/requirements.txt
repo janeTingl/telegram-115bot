@@ -6,4 +6,4 @@ aiohttp==3.10.5
 pyotp==2.9.0
 pycryptodome==3.21.0
 PyYAML==6.0.2
-p115client @ git+https://github.com/HQSxcj/p115client.git@e8f3c87e7b6f98d4c1a2b3e4f5a6c7d8e9f0a1b2#egg=p115client
+p115client==0.13.1
