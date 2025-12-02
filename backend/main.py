@@ -112,7 +112,7 @@ def _include_router(module_name: str):
             push_log("INFO", f"成功挂载路由: {module_name}")
     except Exception as e:
         push_log("WARN", f"挂载路由 {module_name} 失败: {e}")
-
+_include_router("router.auth")
 _include_router("router.offline")
 _include_router("router.file")
 _include_router("router.notify")
