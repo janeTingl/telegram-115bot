@@ -1,17 +1,26 @@
 FROM python:3.12-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
+    build-essential gcc g++ make git curl libffi-dev libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app/backend
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs
 
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
+WORKDIR /app
 
-COPY backend .
-RUN mkdir -p /app/uploads && chmod 777 /app/uploads
+COPY . .
 
-EXPOSE 12808
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "12808"]
+RUN cd /app \
+    && npm ci \
+    && npm run build
+
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir -r backend/requirements.txt
+RUN pip install whitenoise
+
+RUN mv /app/dist /app/backend/static || true
+
+EXPOSE 80
+
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "80"]
