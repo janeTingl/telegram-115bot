@@ -1,3 +1,4 @@
+
 // Simple wrapper for backend API calls
 
 export const api = {
@@ -23,7 +24,7 @@ export const api = {
       return await res.json();
     } catch (e) {
       console.error("API Post Error", e);
-      return { status: 'error', msg: 'Network Error' };
+      return null;
     }
   }
 };
