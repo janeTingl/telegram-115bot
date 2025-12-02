@@ -5,8 +5,8 @@ import logging
 import httpx
 from typing import Dict, Any
 from tmdbv3api import TMDb, Movie, TV, Search
-from services.service_115 import drive_115
-from services.service_ai import ai_service
+from backend.services.service_115 import drive_115
+from backend.services.service_ai import ai_service
 
 logger = logging.getLogger("Organizer")
 

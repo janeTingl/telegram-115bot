@@ -19,16 +19,16 @@ from tmdbv3api import Trending
 from backend.config.manager import CONFIG
 
 # 引入各个服务模块
-from services.service_115 import drive_115
-from services.service_123 import drive_123
-from services.service_openlist import drive_openlist
-from services.service_organizer import organizer
-from services.service_strm import strm_gen
-from services.service_ai import ai_service
-from services.auth_service import auth_service
-from utils.proxy import apply_global_proxy
-from webdav_server import webdav_manager
-from bot import run_bot
+from backend.services.service_115 import drive_115
+from backend.services.service_123 import drive_123
+from backend.services.service_openlist import drive_openlist
+from backend.services.service_organizer import organizer
+from backend.services.service_strm import strm_gen
+from backend.services.service_ai import ai_service
+from backend.services.auth_service import auth_service
+from backend.utils.proxy import apply_global_proxy
+from backend.webdav_server import webdav_manager
+from backend.bot import run_bot
 
 # --- 配置与日志 ---
 DATA_DIR = "/data"
@@ -320,3 +320,19 @@ async def trig_strm():
 # # --- 静态文件托管 (必须放在最后) ---
 if os.path.exists("dist"):
     app.mount("/", StaticFiles(directory="dist", html=True), name="static")
+
+# ==========================================
+# 下面是自动添加的前端挂载代码
+# ==========================================
+import os
+from fastapi.staticfiles import StaticFiles
+
+# 获取根目录下的 dist 文件夹位置
+dist_path = os.path.join(os.getcwd(), 'dist')
+
+# 如果 dist 存在，就挂载它
+if os.path.exists(dist_path):
+    print(f"✅ 发现前端构建文件，正在挂载: {dist_path}")
+    app.mount("/", StaticFiles(directory=dist_path, html=True), name="static")
+else:
+    print(f"⚠️ 未找到 {dist_path} 文件夹，仅运行后端模式")

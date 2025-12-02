@@ -1,14 +1,18 @@
 version: '3.8'
 
 services:
-  115-bot:
-    build: .
-    image: 115-bot-admin:latest
+  115-bot-admin:
     container_name: 115-bot-admin
-    restart: unless-stopped
+    build: .
+    # 1. 关键：工作目录设在根目录 /app
+    working_dir: /app
+    # 2. 关键：命令是 backend.main:app
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 12808 --reload
     ports:
-      - "12808:12808" # 管理后台端口
+      - "12808:12808"
     volumes:
-      - ./data:/data  # 持久化配置数据
+      - .:/app
     environment:
       - TZ=Asia/Shanghai
+      - PYTHONDONTWRITEBYTECODE=1
+    restart: always

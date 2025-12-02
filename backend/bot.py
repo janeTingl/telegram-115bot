@@ -4,7 +4,7 @@ from functools import partial
 import re # <-- 新增：用于正则表达式匹配分享链接
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
-from services.service_115 import drive_115
+from backend.services.service_115 import drive_115
 
 logger = logging.getLogger("TGBot")
 

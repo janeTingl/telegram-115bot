@@ -1,31 +1,19 @@
-FROM node:20-alpine AS frontend-builder
-WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm install
-COPY . .
-RUN npm run build -- --base /
-
 FROM python:3.12-slim
+
+# 1. 关键：工作目录设在根目录 /app
 WORKDIR /app
 
-# 安装编译依赖
-RUN apt-get update && apt-get install -y --no-install-recommends build-essential libffi-dev libssl-dev gcc && rm -rf /var/lib/apt/lists/*
-
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV APP_DATA_DIR=/data
-ENV PYTHONPATH=/app
-
+# 2. 复制 backend 下的依赖并安装
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY backend/ .
-RUN if [ -f backend/main.py ]; then mv backend/main.py . ; fi
+# 3. 复制所有文件 (此时 /app 下会有 backend 文件夹)
+COPY . .
 
-COPY zid.yml .
-COPY --from=frontend-builder /app/dist ./dist
-
-VOLUME /data
+# 4. 暴露端口
 EXPOSE 12808
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "12808"]
+# 5. 关键：启动命令指向 "backend.main"
+# 告诉 Python："去 backend 文件夹里找 main.py，里面的 app 对象"
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "12808"]
+
