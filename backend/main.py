@@ -454,9 +454,11 @@ if __name__ == "__main__":
         "main:app",
         host=host,
         port=port,
-        reload=reload,        # 生产环境建议关闭
+        reload=reload,
         log_level="info"
     )
- from fastapi.staticfiles import StaticFiles
+
+# ==================== 前端静态文件服务（必须放在文件最外面，不能缩进） ====================
+from fastapi.staticfiles import StaticFiles
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
