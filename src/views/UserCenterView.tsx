@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { AppConfig } from '../types';
 import { loadConfig, saveConfig } from '../services/mockConfig';
-import { saveAdminPassword, saveProxyConfig } from '../services/config';
+import { saveAdminPassword, saveProxyConfig, generate2FASecret, verifyAndSave2FA } from '../services/config';
 import { Save, RefreshCw, KeyRound, User, Smartphone, Wifi, Shield, HardDrive, Cloud, Globe, Film, Bot, CheckCircle2, AlertCircle, Zap } from 'lucide-react';
 import { SensitiveInput } from '../components/SensitiveInput';
 
@@ -17,6 +17,8 @@ export const UserCenterView: React.FC = () => {
   const [tempSecret, setTempSecret] = useState('');
   const [verifyCode, setVerifyCode] = useState('');
   const [setupError, setSetupError] = useState('');
+  // 新增状态：存储二维码 URL
+  const [otpauthUrl, setOtpauthUrl] = useState(''); 
 
   const updateNested = (section: keyof AppConfig, key: string, value: any) => {
     setConfig(prev => ({
@@ -66,29 +68,59 @@ export const UserCenterView: React.FC = () => {
       updateNested('proxy', 'host', window.location.hostname);
   };
 
-  const start2FASetup = () => {
-      const randomSecret = 'JBSWY3DPEHPK3PXP' + Math.floor(Math.random() * 10000).toString();
-      setTempSecret(randomSecret);
-      setVerifyCode('');
+  // ----------------------------------------------------
+  // 核心修改：异步获取 2FA 密钥
+  // ----------------------------------------------------
+  const start2FASetup = async () => {
       setSetupError('');
-      setIsSetup2FA(true);
+      setToast('正在生成 2FA 密钥...');
+      try {
+          const { secret, otpauthUrl } = await generate2FASecret(); 
+          setTempSecret(secret);
+          setOtpauthUrl(otpauthUrl);
+          setVerifyCode('');
+          setToast(null);
+          setIsSetup2FA(true);
+      } catch (e) {
+          setToast(`生成密钥失败: ${e.message}`);
+          setTimeout(() => setToast(null), 3000);
+      }
   };
 
   const cancel2FASetup = () => {
       setIsSetup2FA(false);
       setTempSecret('');
+      setOtpauthUrl('');
   };
 
-  const confirm2FASetup = () => {
-      if (verifyCode === '123456') {
-          setConfig(prev => ({ ...prev, twoFactorSecret: tempSecret }));
-          setIsSetup2FA(false);
-          setToast('2FA 配置已更新');
-          setTimeout(() => setToast(null), 3000);
-          saveConfig({ ...config, twoFactorSecret: tempSecret });
-      } else {
-          setSetupError('验证码错误 (测试用: 123456)');
+  // ----------------------------------------------------
+  // 核心修改：异步验证并保存 2FA 密钥
+  // ----------------------------------------------------
+  const confirm2FASetup = async () => {
+      if (!verifyCode || verifyCode.length !== 6) {
+          setSetupError('请输入完整的 6 位验证码');
+          return;
       }
+      setSetupError('');
+      setToast('正在验证 2FA 验证码...');
+
+      try {
+          await verifyAndSave2FA(tempSecret, verifyCode); 
+
+          // 验证成功，更新本地配置和 UI
+          setConfig(prev => ({ ...prev, twoFactorSecret: tempSecret }));
+          saveConfig({ ...config, twoFactorSecret: tempSecret }); // 模拟保存到本地
+          
+          setIsSetup2FA(false);
+          setTempSecret('');
+          setOtpauthUrl('');
+          setToast('2FA 配置已更新，保护已启用！');
+
+      } catch (e) {
+          setSetupError(e.message || '验证码错误，请重试');
+          setToast(null);
+      }
+      setTimeout(() => setToast(null), 3000);
   };
 
   const services = [
@@ -255,8 +287,9 @@ export const UserCenterView: React.FC = () => {
                   <h4 className="font-bold text-slate-800 dark:text-white mb-4 text-sm">设置步骤</h4>
                   
                   <div className="bg-white/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700/50 flex flex-col items-center mb-4">
+                      {/* 使用 otpauthUrl 生成二维码 */}
                       <img 
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=otpauth://totp/115BotAdmin?secret=${tempSecret}&issuer=115Bot`}
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(otpauthUrl)}`}
                         alt="2FA QR"
                         className="w-28 h-28 mb-4 rounded-lg mix-blend-multiply dark:mix-blend-normal opacity-90"
                       />
