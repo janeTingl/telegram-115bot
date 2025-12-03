@@ -4,7 +4,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>115 Bot Configuration</title>
+    <title>115 Bot Configuration</<script>
+window.onerror = function(message, source, lineno, colno, error) {
+  document.body.innerHTML =
+    "<pre style='white-space: pre-wrap; color: red; font-size: 18px; padding: 20px;'>" +
+    "🔥 前端错误捕获：\n\n" +
+    message + "\n\n" +
+    "📌 来源：" + source + "\n" +
+    "📌 行列：" + lineno + ":" + colno + "\n" +
+    "</pre>";
+};
+
+window.addEventListener("unhandledrejection", function(event) {
+  document.body.innerHTML =
+    "<pre style='white-space: pre-wrap; color: purple; font-size: 18px; padding: 20px;'>" +
+    "🔥 Promise 未捕获异常：\n\n" +
+    event.reason +
+    "</pre>";
+});
+</script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
