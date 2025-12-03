@@ -1,6 +1,7 @@
-
-import React, { useState, useEffect } from 'react';
-import { Folder, ChevronRight, Check, X, HardDrive, ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Folder, ChevronRight, Check, X, HardDrive, ArrowLeft, Loader2 } from 'lucide-react';
+// 假设这是你的 API 客户端服务，需要根据你的项目路径修改
+import { api } from '../services/api'; 
 
 interface FileSelectorProps {
   isOpen: boolean;
@@ -9,73 +10,69 @@ interface FileSelectorProps {
   title?: string;
 }
 
-// Mock File System with hierarchy to simulate p115client browsing
-const MOCK_FILE_SYSTEM: Record<string, Array<{id: string, name: string, children: boolean, date: string}>> = {
-  '0': [
-    { id: '101', name: '电影 (Movies)', children: true, date: '2023-10-25' },
-    { id: '102', name: '电视剧 (TV Shows)', children: true, date: '2023-10-26' },
-    { id: '103', name: '动漫 (Anime)', children: true, date: '2023-10-28' },
-    { id: '104', name: '下载中转', children: false, date: '2023-10-29' },
-    { id: '105', name: 'Telegram 机器人下载', children: false, date: '2023-10-29' },
-  ],
-  '101': [
-    { id: '1011', name: '动作片', children: false, date: '2023-09-10' },
-    { id: '1012', name: '科幻片', children: false, date: '2023-09-15' },
-    { id: '1013', name: '华语电影', children: false, date: '2023-09-20' },
-  ],
-  '102': [
-    { id: '1021', name: '美剧', children: false, date: '2023-08-01' },
-    { id: '1022', name: '国产剧', children: false, date: '2023-08-05' },
-    { id: '1023', name: '日韩剧', children: false, date: '2023-08-12' },
-  ],
-  '103': [
-    { id: '1031', name: '新番连载', children: false, date: '2023-10-01' },
-    { id: '1032', name: '完结经典', children: false, date: '2023-10-02' },
-  ]
-};
+// 定义前端期望的数据结构
+interface FileItem {
+  id: string;
+  name: string;
+  children: boolean;
+  date: string;
+}
 
 export const FileSelector: React.FC<FileSelectorProps> = ({ isOpen, onClose, onSelect, title = "选择文件夹" }) => {
   const [history, setHistory] = useState<Array<{id: string, name: string}>>([{id: '0', name: '根目录'}]);
-  const [currentFiles, setCurrentFiles] = useState(MOCK_FILE_SYSTEM['0']);
+  const [currentFiles, setCurrentFiles] = useState<FileItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedName, setSelectedName] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Get current folder ID
-  const currentFolderId = history[history.length - 1].id;
+  const fetchFiles = useCallback(async (cid: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // **【连通点：前端 API 调用】**
+      const response = await api.get(`/api/115/files?cid=${cid}`);
+      
+      if (response && response.data) {
+        // 假设后端返回的数据在 response.data 中
+        setCurrentFiles(response.data);
+      } else {
+        // 处理后端返回空数据或非标准格式的情况
+        setCurrentFiles([]);
+      }
+      setSelectedId(null);
+      setSelectedName('');
+    } catch (err) {
+      console.error("Error fetching 115 files:", err);
+      // 根据实际的 API 错误返回信息
+      setError("无法连接到 115 网盘，请检查登录状态或网络。");
+      setCurrentFiles([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
-      // Reset state when opening
-      setHistory([{id: '0', name: '根目录'}]);
-      setCurrentFiles(MOCK_FILE_SYSTEM['0']);
-      setSelectedId(null);
+      const rootFolder = {id: '0', name: '根目录'};
+      setHistory([rootFolder]);
+      fetchFiles(rootFolder.id);
     }
-  }, [isOpen]);
+  }, [isOpen, fetchFiles]);
 
   if (!isOpen) return null;
 
   const handleNavigate = (folder: {id: string, name: string}) => {
-    setIsLoading(true);
-    // Simulate network delay for p115client fetch
-    setTimeout(() => {
-      setHistory([...history, folder]);
-      setCurrentFiles(MOCK_FILE_SYSTEM[folder.id] || []); // Fallback to empty if not defined
-      setIsLoading(false);
-    }, 300);
+    setHistory(prev => [...prev, folder]);
+    fetchFiles(folder.id);
   };
 
   const handleUp = () => {
     if (history.length > 1) {
       const newHistory = history.slice(0, -1);
       const prevFolderId = newHistory[newHistory.length - 1].id;
-      
-      setIsLoading(true);
       setHistory(newHistory);
-      setTimeout(() => {
-        setCurrentFiles(MOCK_FILE_SYSTEM[prevFolderId] || []);
-        setIsLoading(false);
-      }, 150);
+      fetchFiles(prevFolderId);
     }
   };
 
@@ -123,14 +120,19 @@ export const FileSelector: React.FC<FileSelectorProps> = ({ isOpen, onClose, onS
         <div className="flex-1 overflow-y-auto p-2 relative">
            {isLoading ? (
              <div className="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-slate-800/50 z-10">
-               <div className="w-8 h-8 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin"></div>
+               <Loader2 size={32} className="text-brand-600 animate-spin" />
              </div>
            ) : (
              <>
-               {currentFiles.length === 0 ? (
+               {error ? (
+                 <div className="h-full flex flex-col items-center justify-center text-red-500 text-sm p-4">
+                     <X size={48} className="mb-2 opacity-50" />
+                     {error}
+                 </div>
+               ) : currentFiles.length === 0 ? (
                  <div className="h-full flex flex-col items-center justify-center text-slate-400">
                     <Folder size={48} className="mb-2 opacity-20" />
-                    <span className="text-sm">空文件夹</span>
+                    <span className="text-sm">空文件夹或数据加载失败</span>
                  </div>
                ) : (
                  currentFiles.map((folder) => (
