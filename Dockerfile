@@ -10,15 +10,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
+# 先拷贝依赖文件进行安装（为了利用 Docker 缓存层）
 COPY backend/requirements.txt /app/backend/requirements.txt
 
 RUN pip install --upgrade pip && \
     pip install -r /app/backend/requirements.txt && \
     pip install whitenoise
 
+# 【核心修正】
+# 这一行把当前目录下的所有文件（包括 backend 和 frontend 文件夹）都复制到了 /app
+# 所以你的静态文件现在自然就在：/app/frontend/dist
 COPY . /app
 
-COPY app/dist /app/app/dist
+# 删除掉原来那行 "COPY app/dist ..."，它是多余的，且容易造成路径混乱
 
 EXPOSE 12808
 
