@@ -1,14 +1,21 @@
 // services/task.ts
-export const startOrganizeTask = async () => {
-    const response = await fetch('/api/organize/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        // 注意：这里不需要发送配置，因为后端应该从自己的存储中读取配置
-        body: JSON.stringify({ action: 'start' }) 
-    });
-    
-    if (!response.ok) {
-        throw new Error('Failed to start task');
+export const startOrganizeTask = async (): Promise<{ status: string; job_id?: string }> => {
+    try {
+        const response = await fetch('/api/file/organize/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({}), 
+        });
+        
+        const data = await response.json();
+        
+        if (data.code === 0) {
+            return { status: 'success', job_id: data.data.job_id };
+        } else {
+            throw new Error(data.msg || '任务启动失败');
+        }
+    } catch (error) {
+        console.error("Failed to start organize task:", error);
+        throw new Error(`无法连接后端或启动任务: ${error.message}`);
     }
-    return response.json();
 };
