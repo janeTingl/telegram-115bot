@@ -459,6 +459,16 @@ if __name__ == "__main__":
     )
 
 # ==================== 前端静态文件服务（必须放在文件最外面，不能缩进） ====================
+import os
 from fastapi.staticfiles import StaticFiles
 
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+# 前端 build 输出目录（容器里路径）
+FRONTEND_DIR = "/app/frontend/dist"  # <- 根据你 Dockerfile 中的路径修改
+
+# 如果目录不存在，则创建空目录（避免启动报错）
+if not os.path.exists(FRONTEND_DIR):
+    print(f"⚠️ 目录 '{FRONTEND_DIR}' 不存在，创建空目录")
+    os.makedirs(FRONTEND_DIR, exist_ok=True)
+
+# 挂载前端静态文件
+app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="static")
