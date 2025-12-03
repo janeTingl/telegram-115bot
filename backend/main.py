@@ -18,19 +18,29 @@ except ImportError:
     settings_router = None
     cloud115_qr_router = None
 
-# --- 基础路径设置 ---
-# 在 Docker 中: /app/backend/main.py
-# BASE_DIR = /app/backend
+# --- 核心路径配置 (修改部分) ---
+# BASE_DIR: 代码所在的目录 (例如 /app/backend)
 BASE_DIR = Path(__file__).resolve().parent
 
-UPLOADS_DIR = BASE_DIR / "uploads"
+# DATA_DIR: 数据持久化目录 (例如 /app/data)
+# 优先读取环境变量，默认回退到当前目录下的 data 文件夹
+DATA_DIR = Path(os.getenv("DATA_DIR", BASE_DIR.parent / "data"))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+# 1. 上传文件 -> /app/data/uploads
+UPLOADS_DIR = DATA_DIR / "uploads"
 UPLOADS_DIR.mkdir(exist_ok=True)
 
-LOG_PATH = BASE_DIR / "backend.log"
-_2FA_SESSIONS_PATH = BASE_DIR / "2fa_sessions.json"
+# 2. 日志文件 -> /app/data/backend.log
+LOG_PATH = DATA_DIR / "backend.log"
+
+# 3. 2FA 缓存 -> /app/data/2fa_sessions.json
+_2FA_SESSIONS_PATH = DATA_DIR / "2fa_sessions.json"
+
 
 def write_log(msg: str):
     line = f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {msg}\n"
+    # 确保日志目录存在
     LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(LOG_PATH, "a", encoding="utf-8") as f:
         f.write(line)
@@ -259,6 +269,7 @@ async def secret_get(req: Request, key: str):
 @app.post("/api/files/upload")
 async def filesureq(file: UploadFile = File(...)):
     safe_name = Path(file.filename).name
+    # 存到 DATA_DIR/uploads 下
     dest = UPLOADS_DIR / safe_name
     content = await file.read()
     dest.write_bytes(content)
@@ -299,6 +310,7 @@ async def api_115_upload(filename: str = Form(...), remote_path: str = Form("/")
     if not limiter.consume():
         return {"code": 429, "msg": "rate limited"}
 
+    # 从 UPLOADS_DIR 找文件
     src = UPLOADS_DIR / Path(filename).name
     if not src.exists():
         return {"code": 1, "msg": "local file not found"}
@@ -398,34 +410,23 @@ async def zid_reload():
     except Exception as e:
         return {"code": 1, "msg": str(e)}
 
-# --- 前端静态文件配置 (修复版) ---
+# --- 前端静态文件配置 ---
 
-# 在 Dockerfile 中，我们执行了 COPY . /app
-# 所以结构是：
-# /app/backend/main.py  (当前文件)
-# /app/frontend/dist    (前端构建文件)
-
-# 1. 定位 dist 目录
-# 这里的 logic 是：当前文件在 /app/backend，所以往前退一级到 /app，再进 frontend/dist
+# 代码文件还是在原来的地方，不需要改
 static_dir = BASE_DIR.parent / "frontend" / "dist"
 
-# 2. 挂载 /assets (JS/CSS)
 assets_dir = static_dir / "assets"
 if assets_dir.exists():
     app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
 else:
     print(f"Warning: Assets directory not found at {assets_dir}")
 
-# 3. 处理 SPA 路由 (Vue/React History 模式)
-# 所有未匹配的 API 路径都返回 index.html
 @app.get("/{full_path:path}")
 async def serve_spa(full_path: str):
-    # 先尝试直接找文件 (比如 favicon.ico)
     file_path = static_dir / full_path
     if file_path.exists() and file_path.is_file():
         return FileResponse(file_path)
     
-    # 找不到就返回 index.html (前端路由)
     index_path = static_dir / "index.html"
     if index_path.exists():
         return FileResponse(index_path)
@@ -433,7 +434,9 @@ async def serve_spa(full_path: str):
     return JSONResponse({"code": 404, "msg": "Frontend files not found"}, status_code=404)
 
 if __name__ == "__main__":
-    cfg_path = BASE_DIR / "config.json"
+    # 4. 配置文件路径 -> /app/data/config.json
+    cfg_path = DATA_DIR / "config.json"
+    
     host = "0.0.0.0"
     port = 12808
     reload = True
