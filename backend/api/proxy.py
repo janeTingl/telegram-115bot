@@ -1,34 +1,31 @@
-# backend/api/proxy.py
 from fastapi import APIRouter, Form
-import asyncio
-import aiohttp
-import time
+import pyotp
+from core.db import set_secret, get_secret
 
-router = APIRouter()
+router = APIRouter(tags=["Security"])
 
-async def _probe_once(session, url, timeout=5, proxy=None):
-    try:
-        t0 = time.time()
-        async with session.get(url, timeout=timeout, proxy=proxy) as r:
-            if r.status == 200:
-                return True, time.time() - t0
-            return False, None
-    except Exception:
-        return False, None
+# /api/2fa/setup -> 返回 secret + otpauth (前端生成二维码)
+@router.post("/api/2fa/setup")
+def api_2fa_setup(name: str = Form("115bot")):
+    secret = pyotp.random_base32()
+    # 存到 secrets.db，加密保存
+    set_secret("2fa_secret", secret)
+    otpauth = pyotp.totp.TOTP(secret).provisioning_uri(name=name, issuer_name="115Bot")
+    return {"code": 0, "data": {"secret": secret, "otpauth": otpauth}}
 
-@router.post("/api/proxy/check")
-async def api_proxy_check(url: str = Form(...), proxy: str = Form(None), attempts: int = Form(3)):
-    successes = 0
-    total_time = 0.0
-    async with aiohttp.ClientSession() as session:
-        tasks = []
-        for i in range(attempts):
-            tasks.append(_probe_once(session, url, proxy=proxy))
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-    for ok, rtt in results:
-        if ok:
-            successes += 1
-            total_time += rtt
-    rate = successes / attempts
-    avg = (total_time / successes) if successes else None
-    return {"code": 0, "data": {"success_rate": rate, "avg_rtt": avg, "attempts": attempts}}
+@router.post("/api/2fa/verify")
+def api_2fa_verify(code: str = Form(...)):
+    secret = get_secret("2fa_secret")
+    if not secret:
+        return {"code": 1, "msg": "2FA not setup"}
+    
+    totp = pyotp.TOTP(secret)
+    # valid_window=1 允许前后30秒的时间误差
+    ok = totp.verify(code, valid_window=1)
+    return {"code": 0 if ok else 2, "ok": bool(ok)}
+
+@router.get("/api/2fa/status")
+def api_2fa_status():
+    secret = get_secret("2fa_secret")
+    return {"code": 0, "data": {"enabled": bool(secret)}}
+
