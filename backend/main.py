@@ -11,11 +11,12 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
 
-# ✅ 先创建 FastAPI 实例
 app = FastAPI()
 
-# ✅ 挂载前端静态文件
-app.mount("/", StaticFiles(directory="dist", html=True), name="static")
+BASE_DIR = Path(__file__).resolve().parent.parent
+dist_path = BASE_DIR / "dist"
+
+app.mount("/", StaticFiles(directory=dist_path, html=True), name="static")
 # ==================== 基础路径 ====================
 BASE_DIR = Path(__file__).resolve().parent
 UPLOADS_DIR = BASE_DIR / "uploads"
