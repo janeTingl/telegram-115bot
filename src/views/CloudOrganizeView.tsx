@@ -1,7 +1,7 @@
-// CloudOrganizeView.tsx
+// views/CloudOrganizeView.tsx
 import React, { useState, useEffect } from 'react';
 import { AppConfig, ClassificationRule, MatchConditionType } from '../types';
-import { loadConfig, saveConfig, DEFAULT_MOVIE_RULES, DEFAULT_TV_RULES } from '../services/mockConfig';
+import { loadConfig, DEFAULT_MOVIE_RULES, DEFAULT_TV_RULES } from '../services/mockConfig'; 
 import { loadGlobalConfig, saveGlobalConfig } from '../services/config';
 import { startOrganizeTask } from '../services/task';
 import { Tooltip } from '../components/Tooltip';
@@ -14,7 +14,7 @@ const GENRES = [
   { id: '35', name: '喜剧 (Comedy)' }, { id: '80', name: '犯罪 (Crime)' }, { id: '99', name: '纪录 (Documentary)' },
   { id: '18', name: '剧情 (Drama)' }, { id: '10751', name: '家庭 (Family)' }, { id: '14', name: '奇幻 (Fantasy)' },
   { id: '36', name: '历史 (History)' }, { id: '27', name: '恐怖 (Horror)' }, { id: '10402', name: '音乐 (Music)' },
-  { id: '9648', name: '悬疑 (Mystery)' }, { id: '10749', name: '爱情 (Romance)' }, { id: '878', name: '科幻 (Sci-Fi)' },
+  { id: '9648', name: '悬疑 (Mystery)' }, { id: '10749', name: '爱情 (Romance)' }, { id: '878', 'name': '科幻 (Sci-Fi)' },
   { id: '10770', name: '电视电影 (TV Movie)' }, { id: '53', name: '惊悚 (Thriller)' }, { id: '10752', name: '战争 (War)' },
   { id: '37', name: '西部 (Western)' }, { id: '10762', name: '儿童 (Kids)' }, { id: '10764', name: '真人秀 (Reality)' },
   { id: '10767', name: '脱口秀 (Talk)' }
@@ -48,149 +48,36 @@ export const CloudOrganizeView: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-
+  
   const [activeTab, setActiveTab] = useState<'115' | '123' | 'openlist'>('115');
   const [activeRuleTab, setActiveRuleTab] = useState<'movie' | 'tv'>('movie');
   const [fileSelectorOpen, setFileSelectorOpen] = useState(false);
   const [selectorTarget, setSelectorTarget] = useState<'download' | 'source' | 'target' | null>(null);
+  
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [tempRule, setTempRule] = useState<ClassificationRule | null>(null);
+
   const [qrState, setQrState] = useState<'idle' | 'loading' | 'scanned' | 'success'>('idle');
   const [qrImage, setQrImage] = useState<string>('');
-
+  
   useEffect(() => {
     const fetchConfig = async () => {
-      try {
-        const initialConfig = await loadGlobalConfig();
-        setConfig(initialConfig);
-      } catch (e) {
-        console.error("Failed to load config from backend, using mock data:", e);
-        setConfig(loadConfig());
-        setToast('警告: 无法连接后端，使用本地配置。');
-      } finally {
-        setIsLoading(false);
-      }
+        try {
+            const initialConfig = await loadGlobalConfig();
+            setConfig(initialConfig);
+        } catch (e) {
+            console.error("Failed to load config from backend, using mock data:", e);
+            setConfig(loadConfig());
+            setToast('警告: 无法连接后端，使用本地配置。');
+        } finally {
+            setIsLoading(false);
+        }
     };
     fetchConfig();
   }, []);
 
   const handleRunOrganize = async () => {
-    if (!config?.organize.enabled) {
-      setToast('错误: 请先开启整理功能');
-      setTimeout(() => setToast(null), 3000);
-      return;
-    }
-    setToast('正在发送启动指令...');
-    try {
-      const response = await startOrganizeTask();
-      if (response.status === 'success') {
-        setToast(`整理任务已启动! Job ID: ${response.job_id}`);
-      } else {
-        setToast(`任务启动失败: ${response.status}`);
-      }
-    } catch (error) {
-      setToast(`任务启动失败，请检查后端日志。`);
-      console.error(error);
-    }
-    setTimeout(() => setToast(null), 4000);
-  };
-
-  const handleSave = async () => {
-    if (!config) return;
-    setIsSaving(true);
-    setToast('正在保存配置...');
-    try {
-      await saveGlobalConfig(config);
-      setToast('配置已保存到后端');
-    } catch (e: any) {
-      saveConfig(config);
-      setToast(`保存失败: ${e.message}，已保存到本地`);
-    } finally {
-      setIsSaving(false);
-      setTimeout(() => setToast(null), 3000);
-    }
-  };
-
-  if (isLoading || !config) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-slate-500">
-        <RefreshCw className="animate-spin mr-2" size={24} /> 正在加载配置...
-      </div>
-    );
-  }
-
-  const updateNested = (section: keyof AppConfig, key: string, value: any) => {
-    setConfig(prev => ({
-      ...prev!,
-      [section]: { ...prev![section], [key]: value }
-    }));
-  };
-
-  // === 保留第一份代码的完整 JSX ===
-  return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-      {/* // CloudOrganizeView.tsx
-import React, { useState } from 'react';
-import { AppConfig, ClassificationRule, MatchConditionType } from '../types';
-import { loadConfig, saveConfig, DEFAULT_MOVIE_RULES, DEFAULT_TV_RULES } from '../services/mockConfig';
-import { Tooltip } from '../components/Tooltip';
-import { Save, RefreshCw, Cookie, QrCode, Smartphone, FolderInput, Gauge, Trash2, Plus, Film, Type, Globe, Cloud, Tv, LayoutList, GripVertical, AlertCircle, FolderOutput, Zap, RotateCcw, X, Edit, Check, BrainCircuit, Bot, Laptop, Monitor, Tablet } from 'lucide-react';
-import { SensitiveInput } from '../components/SensitiveInput';
-import { FileSelector } from '../components/FileSelector';
-import { startOrganizeTask } from '../services/task'; // 导入新增的服务函数
-
-const GENRES = [
-  { id: '28', name: '动作 (Action)' }, { id: '12', name: '冒险 (Adventure)' }, { id: '16', name: '动画 (Animation)' },
-  { id: '35', name: '喜剧 (Comedy)' }, { id: '80', name: '犯罪 (Crime)' }, { id: '99', name: '纪录 (Documentary)' },
-  { id: '18', name: '剧情 (Drama)' }, { id: '10751', name: '家庭 (Family)' }, { id: '14', name: '奇幻 (Fantasy)' },
-  { id: '36', name: '历史 (History)' }, { id: '27', name: '恐怖 (Horror)' }, { id: '10402', name: '音乐 (Music)' },
-  { id: '9648', name: '悬疑 (Mystery)' }, { id: '10749', name: '爱情 (Romance)' }, { id: '878', name: '科幻 (Sci-Fi)' },
-  { id: '10770', name: '电视电影 (TV Movie)' }, { id: '53', name: '惊悚 (Thriller)' }, { id: '10752', name: '战争 (War)' },
-  { id: '37', name: '西部 (Western)' }, { id: '10762', name: '儿童 (Kids)' }, { id: '10764', name: '真人秀 (Reality)' },
-  { id: '10767', name: '脱口秀 (Talk)' }
-];
-
-const LANGUAGES = [
-  { id: 'zh,cn,bo,za', name: '中文 (Chinese)' }, { id: 'en', name: '英语 (English)' }, { id: 'ja', name: '日语 (Japanese)' },
-  { id: 'ko', name: '韩语 (Korean)' }, { id: 'fr', name: '法语 (French)' }, { id: 'de', name: '德语 (German)' },
-  { id: 'es', name: '西班牙语 (Spanish)' }, { id: 'ru', name: '俄语 (Russian)' }, { id: 'hi', name: '印地语 (Hindi)' }
-];
-
-const COUNTRIES = [
-  { id: 'CN,TW,HK', name: '中国/港台 (CN/TW/HK)' }, { id: 'US', name: '美国 (USA)' }, { id: 'JP', name: '日本 (Japan)' },
-  { id: 'KR', name: '韩国 (Korea)' }, { id: 'GB', name: '英国 (UK)' }, { id: 'FR', name: '法国 (France)' },
-  { id: 'DE', name: '德国 (Germany)' }, { id: 'IN', name: '印度 (India)' }, { id: 'TH', name: '泰国 (Thailand)' }
-];
-
-const RENAME_TAGS = [
-  { label: '标题', value: '{title}' },
-  { label: '年份', value: '{year}' },
-  { label: '季号(S)', value: '{season}' },
-  { label: '集号(E)', value: '{episode}' },
-  { label: '分辨率', value: '{resolution}' },
-  { label: '制作组', value: '{group}' },
-  { label: '原名', value: '{original_title}' },
-  { label: '来源', value: '{source}' },
-];
-
-export const CloudOrganizeView: React.FC = () => {
-  const [config, setConfig] = useState<AppConfig>(loadConfig());
-  const [isSaving, setIsSaving] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
-  
-  const [activeTab, setActiveTab] = useState<'115' | '123' | 'openlist'>('115');
-  const [activeRuleTab, setActiveRuleTab] = useState<'movie' | 'tv'>('movie');
-  const [fileSelectorOpen, setFileSelectorOpen] = useState(false);
-  const [selectorTarget, setSelectorTarget] = useState<'download' | 'source' | 'target' | null>(null);
-  
-  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
-  const [tempRule, setTempRule] = useState<ClassificationRule | null>(null);
-
-  const [qrState, setQrState] = useState<'idle' | 'loading' | 'scanned' | 'success'>('idle');
-  const [qrImage, setQrImage] = useState<string>('');
-
-  const handleRunOrganize = async () => {
-    if (!config.organize.enabled) {
+    if (!config || !config.organize.enabled) {
          setToast('错误: 请先开启整理功能');
          setTimeout(() => setToast(null), 3000);
          return;
@@ -212,57 +99,63 @@ export const CloudOrganizeView: React.FC = () => {
     setTimeout(() => setToast(null), 4000);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!config) return;
     setIsSaving(true);
-    setTimeout(() => {
-      saveConfig(config);
-      setIsSaving(false);
-      setToast('配置已保存');
-      setTimeout(() => setToast(null), 3000);
-    }, 800);
+    setToast('正在保存配置...');
+    
+    try {
+        await saveGlobalConfig(config); 
+        setToast('配置已保存到后端');
+    } catch (e) {
+        setToast(`保存失败: ${e.message}`);
+    } finally {
+        setIsSaving(false);
+        setTimeout(() => setToast(null), 3000);
+    }
   };
 
   const updateNested = (section: keyof AppConfig, key: string, value: any) => {
     setConfig(prev => ({
-      ...prev,
-      [section]: { ...prev[section], [key]: value }
+      ...prev!, 
+      [section]: { ...prev![section], [key]: value }
     }));
   };
 
   const updateRenameRule = (key: string, value: any) => {
     setConfig(prev => ({
-      ...prev,
+      ...prev!,
       organize: { 
-        ...prev.organize, 
-        rename: { ...prev.organize.rename, [key]: value }
+        ...prev!.organize, 
+        rename: { ...prev!.organize.rename, [key]: value }
       }
     }));
   };
   
   const updateAiConfig = (key: string, value: any) => {
     setConfig(prev => ({
-      ...prev,
+      ...prev!,
       organize: {
-        ...prev.organize,
-        ai: { ...prev.organize.ai, [key]: value }
+        ...prev!.organize,
+        ai: { ...prev!.organize.ai, [key]: value }
       }
     }));
   };
   
   const updateOrganize = (key: string, value: any) => {
     setConfig(prev => ({
-      ...prev,
-      organize: { ...prev.organize, [key]: value }
+      ...prev!,
+      organize: { ...prev!.organize, [key]: value }
     }));
   };
 
-  const getActiveRules = () => activeRuleTab === 'movie' ? config.organize.movieRules : config.organize.tvRules;
+  const getActiveRules = () => activeRuleTab === 'movie' ? config!.organize.movieRules : config!.organize.tvRules;
   
   const updateRuleList = (newRules: ClassificationRule[]) => {
     setConfig(prev => ({
-      ...prev,
+      ...prev!,
       organize: {
-        ...prev.organize,
+        ...prev!.organize,
         [activeRuleTab === 'movie' ? 'movieRules' : 'tvRules']: newRules
       }
     }));
@@ -304,17 +197,24 @@ export const CloudOrganizeView: React.FC = () => {
     setTempRule(null);
   };
 
-  const handleRestorePresets = () => {
+  const handleRestorePresets = async () => {
+    if (!config) return;
     if (confirm('确定要恢复默认分类模块吗？所有自定义更改将丢失。')) {
-      setConfig(prev => ({
-        ...prev,
+      const newConfig = {
+        ...config,
         organize: {
-          ...prev.organize,
+          ...config.organize,
           movieRules: DEFAULT_MOVIE_RULES,
           tvRules: DEFAULT_TV_RULES
         }
-      }));
-      setToast('已恢复默认预设模块');
+      };
+      setConfig(newConfig);
+      try {
+        await saveGlobalConfig(newConfig);
+        setToast('已恢复默认预设模块并保存');
+      } catch (e) {
+        setToast(`恢复后保存失败: ${e.message}`);
+      }
       setTimeout(() => setToast(null), 3000);
     }
   };
@@ -366,7 +266,7 @@ export const CloudOrganizeView: React.FC = () => {
   const generateMockQr = () => {
     setQrState('loading');
     setTimeout(() => {
-      setQrImage(`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=115-Login-Mock-${Date.now()}-${config.cloud115.loginApp}`);
+      setQrImage(`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=115-Login-Mock-${Date.now()}-${config!.cloud115.loginApp}`);
       setQrState('idle'); 
       setTimeout(() => {
         setQrState('scanned');
@@ -396,9 +296,17 @@ export const CloudOrganizeView: React.FC = () => {
   };
 
   const insertTag = (tag: string, target: 'movie' | 'series') => {
-      const current = target === 'movie' ? config.organize.rename.movieTemplate : config.organize.rename.seriesTemplate;
+      const current = target === 'movie' ? config!.organize.rename.movieTemplate : config!.organize.rename.seriesTemplate;
       updateRenameRule(target === 'movie' ? 'movieTemplate' : 'seriesTemplate', current + ' ' + tag);
   };
+  
+  if (isLoading || !config) {
+     return (
+        <div className="min-h-screen flex items-center justify-center text-slate-500">
+           <RefreshCw className="animate-spin mr-2" size={24} /> 正在加载配置...
+        </div>
+     );
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -671,7 +579,7 @@ export const CloudOrganizeView: React.FC = () => {
                     type="checkbox" 
                     className="peer sr-only"
                     checked={config.organize.enabled}
-                    onChange={(e) => setConfig({...config, organize: {...config.organize, enabled: e.target.checked}})}
+                    onChange={(e) => setConfig({...config!, organize: {...config!.organize, enabled: e.target.checked}})}
                   />
                   <label htmlFor="organizeEnabled" className="block h-5 overflow-hidden bg-slate-200 dark:bg-slate-700 rounded-full cursor-pointer peer-checked:bg-indigo-600 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white dark:after:bg-white after:w-4 after:h-4 after:rounded-full after:shadow-sm after:transition-all peer-checked:after:translate-x-full"></label>
               </div>
@@ -996,9 +904,6 @@ export const CloudOrganizeView: React.FC = () => {
          onSelect={handleDirSelect} 
          title={`选择 ${selectorTarget === 'target' ? '存放目录' : selectorTarget === 'source' ? '源目录' : '下载目录'}`}
       />
-    </div>
-  );
-}; */}
     </div>
   );
 };
