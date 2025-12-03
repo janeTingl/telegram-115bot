@@ -1,4 +1,4 @@
-// services/config.ts
+// services/config.ts (完整代码，包含之前新增的函数)
 
 interface ProxySettings {
     enabled: boolean;
@@ -7,6 +7,36 @@ interface ProxySettings {
     port: string;
 }
 
+// 假设 AppConfig 类型已从其他文件导入
+// import { AppConfig } from '../types';
+type AppConfig = any; 
+
+// --- Config R/W ---
+export const loadGlobalConfig = async (): Promise<AppConfig> => {
+    const response = await fetch('/api/config/load', { method: 'GET' });
+    const data = await response.json();
+    if (data.code === 0) {
+        return data.data as AppConfig;
+    } else {
+        throw new Error(data.msg || "无法从后端加载配置");
+    }
+};
+
+export const saveGlobalConfig = async (config: AppConfig): Promise<void> => {
+    const response = await fetch('/api/config/save_all', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config),
+    });
+    
+    const data = await response.json();
+    if (data.code !== 0) {
+        throw new Error(data.msg || "配置保存失败");
+    }
+};
+
+
+// --- Password & Proxy ---
 export const saveAdminPassword = async (newPassword: string): Promise<void> => {
     const formData = new FormData();
     formData.append('new_password', newPassword); 
@@ -35,11 +65,8 @@ export const saveProxyConfig = async (proxyConfig: ProxySettings): Promise<void>
     }
 };
 
-// ----------------------------------------------------
-// 新增 2FA 连通函数
-// ----------------------------------------------------
 
-// 1. 获取密钥和二维码URL
+// --- 2FA ---
 export const generate2FASecret = async (): Promise<{ secret: string; otpauthUrl: string }> => {
     const response = await fetch('/api/auth/2fa/generate', {
         method: 'GET',
@@ -53,7 +80,6 @@ export const generate2FASecret = async (): Promise<{ secret: string; otpauthUrl:
     }
 };
 
-// 2. 验证并保存密钥
 export const verifyAndSave2FA = async (secret: string, code: string): Promise<void> => {
     const formData = new FormData();
     formData.append('secret', secret);
