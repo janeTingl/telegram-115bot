@@ -4,29 +4,27 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
-# 1. 安装 Nginx 和 Supervisor
+# 安装必要依赖：Python 库、Nginx、Supervisor
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential gcc g++ make git curl libffi-dev libssl-dev \
-    nginx supervisor \
+    libffi-dev libssl-dev nginx supervisor \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
+# 安装后端 Python 依赖
 COPY backend/requirements.txt /app/backend/requirements.txt
-
 RUN pip install --upgrade pip && \
-    pip install -r /app/backend/requirements.txt && \
-    pip install whitenoise
+    pip install -r /app/backend/requirements.txt
 
-# 2. 复制所有代码 (包含 frontend/dist)
+# 复制全部代码 (前端 dist、后端代码)
 COPY . /app
 
-# 3. 复制配置文件到系统目录
+# 拷贝配置文件到系统目录
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# 4. 暴露 12808 端口 (给 Nginx 用)
+# 暴露 Nginx 端口
 EXPOSE 12808
 
-# 5. 启动 Supervisor (由它来启动 Nginx 和 Python)
+# 启动 Supervisor
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
