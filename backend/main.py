@@ -11,6 +11,17 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+# --- 新增模块导入 (放在这里以确保依赖存在时才导入) ---
+try:
+    from api.common_settings import router as settings_router
+    from api.cloud115_qr import router as cloud115_qr_router
+    # 如果你也想用刚才的代理检测等工具，可以在这里导入
+    # from api.proxy import router as proxy_router 
+except ImportError as e:
+    print(f"WARN: 新API模块导入失败，部分设置页面功能可能不可用: {e}")
+    settings_router = None
+    cloud115_qr_router = None
+
 BASE_DIR = Path(__file__).resolve().parent
 UPLOADS_DIR = BASE_DIR / "uploads"
 UPLOADS_DIR.mkdir(exist_ok=True)
@@ -24,6 +35,7 @@ def write_log(msg: str):
     with open(LOG_PATH, "a", encoding="utf-8") as f:
         f.write(line)
 
+# --- 核心依赖加载 (保持原有逻辑) ---
 try:
     from core.logger import push_log
 except Exception:
@@ -83,7 +95,9 @@ except Exception:
     ZID_CACHE: Dict[str, Any] = {}
     def load_zid(): return {}
 
-app = FastAPI(title="115Bot Backend", version="2.0")
+
+# --- FastAPI 初始化 ---
+app = FastAPI(title="115Bot Backend", version="2.1")
 
 app.add_middleware(
     CORSMiddleware,
@@ -93,14 +107,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- 1. 挂载原有动态路由 (保持原有逻辑) ---
 def _include_router(module_name: str):
     try:
         mod = __import__(module_name, fromlist=["router"])
         if hasattr(mod, "router"):
             app.include_router(mod.router, prefix="/api")
-            push_log("INFO", f"成功挂载路由: {module_name}")
+            push_log("INFO", f"成功挂载旧版路由: {module_name}")
     except Exception as e:
-        push_log("WARN", f"挂载路由 {module_name} 失败: {e}")
+        push_log("WARN", f"挂载旧版路由 {module_name} 失败: {e}")
 
 _include_router("router.auth")
 _include_router("router.offline")
@@ -109,12 +124,25 @@ _include_router("router.notify")
 _include_router("router.tmdb")
 _include_router("router.emby")
 
+# --- 2. 挂载新功能路由 (新增部分) ---
+# 这些路由支持新的 React 设置页面 (Config, EmbyTest, 115QR)
+if settings_router:
+    app.include_router(settings_router) # 包含 /api/config (GET/POST), /api/emby/test
+    push_log("INFO", "成功挂载通用设置路由 (settings_router)")
+
+if cloud115_qr_router:
+    app.include_router(cloud115_qr_router) # 包含 /api/115/qrcode, /api/115/status
+    push_log("INFO", "成功挂载115扫码路由 (cloud115_qr_router)")
+
+# --- 挂载旧应用兼容 ---
 try:
     from main_old import app as old_app
     app.mount("/old", old_app)
 except Exception:
     pass
 
+
+# --- 辅助函数与模型 (保持原有逻辑) ---
 def _load_2fa_sessions() -> Dict[str, float]:
     if _2FA_SESSIONS_PATH.exists():
         try:
@@ -158,6 +186,7 @@ def get_p115() -> Optional[P115Wrapper]:
             _P115_INSTANCE = False
     return _P115_INSTANCE if _P115_INSTANCE and _P115_INSTANCE is not False else None
 
+# --- Pydantic Models (保持原有) ---
 class ConfigUpdate(BaseModel):
     key: str
     value: Any
@@ -177,18 +206,22 @@ class StrmBody(BaseModel):
     target_dir: Optional[str] = None
     template: str = "{filepath}"
 
+
+# --- 原有 API Endpoints (保持不变) ---
 @app.get("/healthz")
 async def healthz():
     return "ok"
 
 @app.get("/api/status")
 async def status():
-    return {"code": 0, "data": {"uptime": time.time(), "version": "backend-2.0"}}
+    return {"code": 0, "data": {"uptime": time.time(), "version": "backend-2.1"}}
 
 @app.get("/api/version")
 async def version():
-    return {"code": 0, "data": {"version": "2.0", "name": "telegram-115bot-backend"}}
+    return {"code": 0, "data": {"version": "2.1", "name": "telegram-115bot-backend"}}
 
+# 注意：这里保留了旧的 config/get 接口，防止旧脚本失效
+# 新前端使用的是 settings_router 里的 /api/config
 @app.get("/api/config/get")
 async def config_get():
     try:
@@ -272,6 +305,8 @@ async def files_list(path: str = "."):
     except Exception as e:
         return {"code": 2, "msg": str(e)}
 
+# 保留你自己的 115 登录接口 (手动填Cookie)
+# 新的扫码登录接口在 cloud115_qr_router 中
 @app.post("/api/115/login")
 async def api_115_login(cookie: Optional[str] = Form(None)):
     if cookie:
@@ -395,6 +430,7 @@ async def zid_reload():
     except Exception as e:
         return {"code": 1, "msg": str(e)}
 
+# --- 静态文件托管 (保持原有逻辑) ---
 def find_frontend_dir() -> Path:
     env_path = os.getenv("FRONTEND_DIST")
     if env_path:
