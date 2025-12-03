@@ -1,4 +1,4 @@
-
+// CloudOrganizeView.tsx
 import React, { useState } from 'react';
 import { AppConfig, ClassificationRule, MatchConditionType } from '../types';
 import { loadConfig, saveConfig, DEFAULT_MOVIE_RULES, DEFAULT_TV_RULES } from '../services/mockConfig';
@@ -6,8 +6,8 @@ import { Tooltip } from '../components/Tooltip';
 import { Save, RefreshCw, Cookie, QrCode, Smartphone, FolderInput, Gauge, Trash2, Plus, Film, Type, Globe, Cloud, Tv, LayoutList, GripVertical, AlertCircle, FolderOutput, Zap, RotateCcw, X, Edit, Check, BrainCircuit, Bot, Laptop, Monitor, Tablet } from 'lucide-react';
 import { SensitiveInput } from '../components/SensitiveInput';
 import { FileSelector } from '../components/FileSelector';
+import { startOrganizeTask } from '../services/task'; // 导入新增的服务函数
 
-// DICTIONARIES
 const GENRES = [
   { id: '28', name: '动作 (Action)' }, { id: '12', name: '冒险 (Adventure)' }, { id: '16', name: '动画 (Animation)' },
   { id: '35', name: '喜剧 (Comedy)' }, { id: '80', name: '犯罪 (Crime)' }, { id: '99', name: '纪录 (Documentary)' },
@@ -47,19 +47,39 @@ export const CloudOrganizeView: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   
-  // UI State
   const [activeTab, setActiveTab] = useState<'115' | '123' | 'openlist'>('115');
   const [activeRuleTab, setActiveRuleTab] = useState<'movie' | 'tv'>('movie');
   const [fileSelectorOpen, setFileSelectorOpen] = useState(false);
   const [selectorTarget, setSelectorTarget] = useState<'download' | 'source' | 'target' | null>(null);
   
-  // Rule Edit State
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [tempRule, setTempRule] = useState<ClassificationRule | null>(null);
 
-  // Mock QR Logic
   const [qrState, setQrState] = useState<'idle' | 'loading' | 'scanned' | 'success'>('idle');
   const [qrImage, setQrImage] = useState<string>('');
+
+  const handleRunOrganize = async () => {
+    if (!config.organize.enabled) {
+         setToast('错误: 请先开启整理功能');
+         setTimeout(() => setToast(null), 3000);
+         return;
+    }
+    setToast('正在发送启动指令...');
+    
+    try {
+        const response = await startOrganizeTask();
+        
+        if (response.status === 'success') {
+            setToast(`整理任务已启动! Job ID: ${response.job_id}`);
+        } else {
+            setToast(`任务启动失败: ${response.status}`);
+        }
+    } catch (error) {
+        setToast(`任务启动失败，请检查后端日志。`);
+        console.error(error);
+    }
+    setTimeout(() => setToast(null), 4000);
+  };
 
   const handleSave = () => {
     setIsSaving(true);
@@ -105,7 +125,6 @@ export const CloudOrganizeView: React.FC = () => {
     }));
   };
 
-  // Rule Logic
   const getActiveRules = () => activeRuleTab === 'movie' ? config.organize.movieRules : config.organize.tvRules;
   
   const updateRuleList = (newRules: ClassificationRule[]) => {
@@ -130,7 +149,7 @@ export const CloudOrganizeView: React.FC = () => {
   };
 
   const handleEditRule = (rule: ClassificationRule) => {
-    setTempRule({ ...rule, conditions: { ...rule.conditions } }); // Deep copy conditions
+    setTempRule({ ...rule, conditions: { ...rule.conditions } });
     setEditingRuleId(rule.id);
   };
 
@@ -169,7 +188,6 @@ export const CloudOrganizeView: React.FC = () => {
     }
   };
 
-  // Temp Rule Editor Helpers
   const toggleTempCondition = (type: MatchConditionType, value: string, isExclusive: boolean = false) => {
     if (!tempRule) return;
     
@@ -262,11 +280,18 @@ export const CloudOrganizeView: React.FC = () => {
 
       <div className="flex flex-col md:flex-row justify-between items-center pb-2 gap-4">
         <h2 className="text-2xl font-bold text-slate-800 dark:text-white tracking-tight drop-shadow-sm">网盘整理</h2>
+        
+        <button
+            onClick={handleRunOrganize}
+            disabled={isSaving || !config.organize.enabled}
+            className="bg-green-600/90 hover:bg-green-600 backdrop-blur-md border border-white/10 text-white disabled:opacity-50 px-5 py-2 rounded-lg font-medium text-sm flex items-center gap-2 shadow-lg transition-all active:scale-95 shadow-green-500/20"
+        >
+            <Zap size={16} /> 运行整理任务
+        </button>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         
-        {/* Account Management */}
         <section className="bg-white/70 dark:bg-slate-900/50 backdrop-blur-md rounded-xl border border-white/50 dark:border-slate-700/50 shadow-sm xl:col-span-2">
            <div className="px-6 py-4 border-b border-slate-200/50 dark:border-slate-700/50 flex items-center gap-3">
               <div className="p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg text-orange-600 dark:text-orange-400 shadow-inner">
@@ -275,14 +300,12 @@ export const CloudOrganizeView: React.FC = () => {
              <h3 className="font-bold text-slate-700 dark:text-slate-200 text-base">账号与连接</h3>
           </div>
           <div className="p-6">
-             {/* Account Tabs */}
              <div className="flex gap-6 border-b border-slate-200 dark:border-slate-700 mb-6">
                <button onClick={() => setActiveTab('115')} className={`pb-3 px-2 font-bold text-sm transition-colors border-b-2 ${activeTab === '115' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>115 网盘</button>
                <button onClick={() => setActiveTab('123')} className={`pb-3 px-2 font-bold text-sm transition-colors border-b-2 ${activeTab === '123' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>123 云盘</button>
                <button onClick={() => setActiveTab('openlist')} className={`pb-3 px-2 font-bold text-sm transition-colors border-b-2 ${activeTab === 'openlist' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>OpenList</button>
              </div>
 
-             {/* 115 Settings */}
              {activeTab === '115' && (
                <div className="space-y-6 animate-in fade-in duration-300">
                   <div className="flex flex-wrap gap-3 mb-6">
@@ -403,7 +426,6 @@ export const CloudOrganizeView: React.FC = () => {
                </div>
              )}
 
-             {/* 123 Settings (OpenAPI) */}
              {activeTab === '123' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-300">
                    <div className="md:col-span-2 bg-blue-50/50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-900 mb-2 backdrop-blur-sm">
@@ -447,7 +469,6 @@ export const CloudOrganizeView: React.FC = () => {
                 </div>
              )}
 
-             {/* OpenList Settings */}
              {activeTab === 'openlist' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-300">
                    <div className="md:col-span-2 bg-cyan-50/50 dark:bg-cyan-900/20 p-4 rounded-xl border border-cyan-100 dark:border-cyan-800 mb-2 flex items-start gap-3 backdrop-blur-sm">
@@ -490,7 +511,6 @@ export const CloudOrganizeView: React.FC = () => {
                 </div>
              )}
 
-             {/* Inline Save Button */}
              <div className="flex justify-end mt-6">
                 <button
                     onClick={handleSave}
@@ -504,7 +524,6 @@ export const CloudOrganizeView: React.FC = () => {
           </div>
         </section>
 
-        {/* Organize Rules Engine */}
         {activeTab !== 'openlist' && (
         <section className="bg-white/70 dark:bg-slate-900/50 backdrop-blur-md rounded-xl border border-white/50 dark:border-slate-700/50 shadow-sm xl:col-span-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
            <div className="px-6 py-4 border-b border-slate-200/50 dark:border-slate-700/50 flex items-center justify-between">
@@ -515,7 +534,6 @@ export const CloudOrganizeView: React.FC = () => {
               <h3 className="font-bold text-slate-700 dark:text-slate-200 text-base">分类与重命名规则 (TMDB)</h3>
             </div>
              <div className="flex items-center gap-3">
-               {/* Header Toggle */}
                <div className="relative inline-block w-9 h-5 transition duration-200 ease-in-out rounded-full cursor-pointer">
                   <input 
                     id="organizeEnabled" 
@@ -530,32 +548,30 @@ export const CloudOrganizeView: React.FC = () => {
           </div>
           
           <div className="p-6 space-y-8">
-            {/* Source and Target Directories */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-slate-50/50 dark:bg-slate-900/30 p-6 rounded-xl border border-slate-200 dark:border-slate-700/50 backdrop-blur-sm">
-                 <div>
-                    <label className="flex items-center text-xs font-bold text-slate-500 uppercase mb-3">源目录 (Source)</label>
-                    <div className="flex gap-3">
-                       <div className="flex-1 px-4 py-3 rounded-lg border border-slate-300/50 dark:border-slate-600/50 bg-white/50 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 text-sm flex items-center gap-3 backdrop-blur-sm">
-                         <FolderInput size={20} />
-                         {config.organize.sourceDirName || '默认下载目录'}
-                       </div>
-                       <button onClick={() => { setSelectorTarget('source'); setFileSelectorOpen(true); }} className="px-4 py-3 bg-white/50 dark:bg-slate-700/50 border border-slate-300/50 dark:border-slate-600/50 hover:border-indigo-500 rounded-lg text-sm font-medium transition-colors backdrop-blur-sm">选择</button>
-                    </div>
-                 </div>
-                 <div>
-                    <label className="flex items-center text-xs font-bold text-slate-500 uppercase mb-3">目标目录 (Target)</label>
-                    <div className="flex gap-3">
-                       <div className="flex-1 px-4 py-3 rounded-lg border border-slate-300/50 dark:border-slate-600/50 bg-white/50 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 text-sm flex items-center gap-3 backdrop-blur-sm">
-                         <FolderOutput size={20} />
-                         {config.organize.targetDirName || '整理存放目录'}
-                       </div>
-                       <button onClick={() => { setSelectorTarget('target'); setFileSelectorOpen(true); }} className="px-4 py-3 bg-white/50 dark:bg-slate-700/50 border border-slate-300/50 dark:border-slate-600/50 hover:border-indigo-500 rounded-lg text-sm font-medium transition-colors backdrop-blur-sm">选择</button>
-                    </div>
-                 </div>
-            </div>
-
             <div className={`transition-all duration-300 ${config.organize.enabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
-               {/* AI Config */}
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-slate-50/50 dark:bg-slate-900/30 p-6 rounded-xl border border-slate-200 dark:border-slate-700/50 backdrop-blur-sm">
+                    <div>
+                       <label className="flex items-center text-xs font-bold text-slate-500 uppercase mb-3">源目录 (Source)</label>
+                       <div className="flex gap-3">
+                          <div className="flex-1 px-4 py-3 rounded-lg border border-slate-300/50 dark:border-slate-600/50 bg-white/50 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 text-sm flex items-center gap-3 backdrop-blur-sm">
+                            <FolderInput size={20} />
+                            {config.organize.sourceDirName || '默认下载目录'}
+                          </div>
+                          <button onClick={() => { setSelectorTarget('source'); setFileSelectorOpen(true); }} className="px-4 py-3 bg-white/50 dark:bg-slate-700/50 border border-slate-300/50 dark:border-slate-600/50 hover:border-indigo-500 rounded-lg text-sm font-medium transition-colors backdrop-blur-sm">选择</button>
+                       </div>
+                    </div>
+                    <div>
+                       <label className="flex items-center text-xs font-bold text-slate-500 uppercase mb-3">目标目录 (Target)</label>
+                       <div className="flex gap-3">
+                          <div className="flex-1 px-4 py-3 rounded-lg border border-slate-300/50 dark:border-slate-600/50 bg-white/50 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 text-sm flex items-center gap-3 backdrop-blur-sm">
+                            <FolderOutput size={20} />
+                            {config.organize.targetDirName || '整理存放目录'}
+                          </div>
+                          <button onClick={() => { setSelectorTarget('target'); setFileSelectorOpen(true); }} className="px-4 py-3 bg-white/50 dark:bg-slate-700/50 border border-slate-300/50 dark:border-slate-600/50 hover:border-indigo-500 rounded-lg text-sm font-medium transition-colors backdrop-blur-sm">选择</button>
+                       </div>
+                    </div>
+               </div>
+
                <div className="mb-8 border-b border-slate-100 dark:border-slate-700 pb-8">
                   <div className="flex items-center justify-between mb-4">
                      <div className="flex items-center gap-2">
@@ -605,7 +621,6 @@ export const CloudOrganizeView: React.FC = () => {
                   )}
                </div>
 
-               {/* Global Renaming Settings */}
                <div className="mb-8 grid grid-cols-1 gap-8 border-b border-slate-100 dark:border-slate-700 pb-8">
                  <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase mb-2">TMDB API 密钥</label>
@@ -617,7 +632,6 @@ export const CloudOrganizeView: React.FC = () => {
                  </div>
 
                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* Movie Template Builder */}
                     <div className="space-y-4">
                        <label className="flex items-center text-xs font-bold text-slate-500 uppercase tracking-wide">电影重命名规则</label>
                        <div className="flex flex-wrap gap-2 mb-2">
@@ -640,7 +654,6 @@ export const CloudOrganizeView: React.FC = () => {
                        </div>
                     </div>
                     
-                    {/* Series Template Builder */}
                     <div className="space-y-4">
                        <label className="flex items-center text-xs font-bold text-slate-500 uppercase tracking-wide">剧集重命名规则</label>
                        <div className="flex flex-wrap gap-2 mb-2">
@@ -670,7 +683,6 @@ export const CloudOrganizeView: React.FC = () => {
                  </div>
                </div>
 
-               {/* Modules / Rules System */}
                <div>
                   <div className="flex items-center justify-between mb-6">
                      <div className="flex gap-3 bg-slate-100/50 dark:bg-slate-900/50 p-1 rounded-lg backdrop-blur-sm">
@@ -703,7 +715,6 @@ export const CloudOrganizeView: React.FC = () => {
                      </div>
                   </div>
 
-                  {/* Modules Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                      {getActiveRules().map((rule) => (
                         <div key={rule.id} className="bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-5 group hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors relative hover:shadow-md backdrop-blur-sm">
@@ -715,9 +726,7 @@ export const CloudOrganizeView: React.FC = () => {
                               </div>
                            </div>
                            
-                           {/* Summary Chips */}
                            <div className="space-y-2">
-                              {/* Genre Summary */}
                               <div className="flex items-center gap-2 text-xs">
                                  <LayoutList size={14} className="text-slate-400" />
                                  <span className="text-slate-600 dark:text-slate-400 truncate">
@@ -726,7 +735,6 @@ export const CloudOrganizeView: React.FC = () => {
                                       : '全部类型'}
                                  </span>
                               </div>
-                              {/* Region Summary */}
                               <div className="flex items-center gap-2 text-xs">
                                  <Globe size={14} className="text-slate-400" />
                                  <span className="text-slate-600 dark:text-slate-400 truncate">
@@ -735,7 +743,6 @@ export const CloudOrganizeView: React.FC = () => {
                                       : '全部地区'}
                                  </span>
                               </div>
-                              {/* Language Summary */}
                                <div className="flex items-center gap-2 text-xs">
                                  <Type size={14} className="text-slate-400" />
                                  <span className="text-slate-600 dark:text-slate-400 truncate">
@@ -750,7 +757,6 @@ export const CloudOrganizeView: React.FC = () => {
                   </div>
                </div>
                
-               {/* Inline Save Button */}
                <div className="flex justify-end mt-6">
                   <button
                       onClick={handleSave}
@@ -767,7 +773,6 @@ export const CloudOrganizeView: React.FC = () => {
         )}
       </div>
 
-      {/* Edit Rule Modal/Panel */}
       {editingRuleId && tempRule && (
          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh]">
@@ -788,7 +793,6 @@ export const CloudOrganizeView: React.FC = () => {
                      </div>
                      
                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {/* Genre Selection */}
                         <div className="space-y-3">
                            <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-2">
                               <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1"><LayoutList size={12}/> 类型</label>
@@ -803,7 +807,6 @@ export const CloudOrganizeView: React.FC = () => {
                            </div>
                         </div>
                         
-                         {/* Region Selection */}
                         <div className="space-y-3">
                            <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-2">
                               <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1"><Globe size={12}/> 地区</label>
@@ -824,7 +827,6 @@ export const CloudOrganizeView: React.FC = () => {
                            </div>
                         </div>
 
-                         {/* Language Selection */}
                          <div className="space-y-3">
                            <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-2">
                               <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1"><Type size={12}/> 语言</label>
