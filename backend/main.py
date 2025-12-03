@@ -9,7 +9,13 @@ from fastapi import FastAPI, Request, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from fastapi.staticfiles import StaticFiles
 
+# ✅ 先创建 FastAPI 实例
+app = FastAPI()
+
+# ✅ 挂载前端静态文件
+app.mount("/", StaticFiles(directory="dist", html=True), name="static")
 # ==================== 基础路径 ====================
 BASE_DIR = Path(__file__).resolve().parent
 UPLOADS_DIR = BASE_DIR / "uploads"
