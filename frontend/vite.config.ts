@@ -11,7 +11,7 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0', // 允许 Docker 外部访问
-    port: 3000,
+    port: 8000,
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:12808', // 本地调试时转发给后端
@@ -20,7 +20,7 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: 'dist',
+    outDir: '../backend/dist',
     emptyOutDir: true,
   }
 });
