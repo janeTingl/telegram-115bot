@@ -7,18 +7,14 @@ from typing import Optional, List, Dict, Any
 import uvicorn
 from fastapi import FastAPI, Request, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-# --- 新增模块导入 (放在这里以确保依赖存在时才导入) ---
 try:
     from api.common_settings import router as settings_router
     from api.cloud115_qr import router as cloud115_qr_router
-    # 如果你也想用刚才的代理检测等工具，可以在这里导入
-    # from api.proxy import router as proxy_router 
-except ImportError as e:
-    print(f"WARN: 新API模块导入失败，部分设置页面功能可能不可用: {e}")
+except ImportError:
     settings_router = None
     cloud115_qr_router = None
 
@@ -35,7 +31,6 @@ def write_log(msg: str):
     with open(LOG_PATH, "a", encoding="utf-8") as f:
         f.write(line)
 
-# --- 核心依赖加载 (保持原有逻辑) ---
 try:
     from core.logger import push_log
 except Exception:
@@ -44,26 +39,22 @@ except Exception:
 
 try:
     from task_queue import submit_task, get_task, TaskStatus
-except Exception as e:
-    push_log("WARN", f"task_queue 加载失败: {e}")
+except Exception:
     submit_task = get_task = TaskStatus = None
 
 try:
     from organizer import preview_organize, run_organize, list_files as organizer_list_files
-except Exception as e:
-    push_log("WARN", f"organizer 加载失败: {e}")
+except Exception:
     preview_organize = run_organize = organizer_list_files = None
 
 try:
     from strm_generator import generate_strm_for_files
-except Exception as e:
-    push_log("WARN", f"strm_generator 加载失败: {e}")
+except Exception:
     generate_strm_for_files = None
 
 try:
     from p115_wrapper import P115Wrapper, P115Error
-except Exception as e:
-    push_log("WARN", f"p115_wrapper 加载失败: {e}")
+except Exception:
     P115Wrapper = None
     P115Error = Exception
 
@@ -95,8 +86,6 @@ except Exception:
     ZID_CACHE: Dict[str, Any] = {}
     def load_zid(): return {}
 
-
-# --- FastAPI 初始化 ---
 app = FastAPI(title="115Bot Backend", version="2.1")
 
 app.add_middleware(
@@ -107,15 +96,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- 1. 挂载原有动态路由 (保持原有逻辑) ---
 def _include_router(module_name: str):
     try:
         mod = __import__(module_name, fromlist=["router"])
         if hasattr(mod, "router"):
             app.include_router(mod.router, prefix="/api")
-            push_log("INFO", f"成功挂载旧版路由: {module_name}")
-    except Exception as e:
-        push_log("WARN", f"挂载旧版路由 {module_name} 失败: {e}")
+    except Exception:
+        pass
 
 _include_router("router.auth")
 _include_router("router.offline")
@@ -124,25 +111,18 @@ _include_router("router.notify")
 _include_router("router.tmdb")
 _include_router("router.emby")
 
-# --- 2. 挂载新功能路由 (新增部分) ---
-# 这些路由支持新的 React 设置页面 (Config, EmbyTest, 115QR)
 if settings_router:
-    app.include_router(settings_router) # 包含 /api/config (GET/POST), /api/emby/test
-    push_log("INFO", "成功挂载通用设置路由 (settings_router)")
+    app.include_router(settings_router)
 
 if cloud115_qr_router:
-    app.include_router(cloud115_qr_router) # 包含 /api/115/qrcode, /api/115/status
-    push_log("INFO", "成功挂载115扫码路由 (cloud115_qr_router)")
+    app.include_router(cloud115_qr_router)
 
-# --- 挂载旧应用兼容 ---
 try:
     from main_old import app as old_app
     app.mount("/old", old_app)
 except Exception:
     pass
 
-
-# --- 辅助函数与模型 (保持原有逻辑) ---
 def _load_2fa_sessions() -> Dict[str, float]:
     if _2FA_SESSIONS_PATH.exists():
         try:
@@ -186,7 +166,6 @@ def get_p115() -> Optional[P115Wrapper]:
             _P115_INSTANCE = False
     return _P115_INSTANCE if _P115_INSTANCE and _P115_INSTANCE is not False else None
 
-# --- Pydantic Models (保持原有) ---
 class ConfigUpdate(BaseModel):
     key: str
     value: Any
@@ -206,8 +185,6 @@ class StrmBody(BaseModel):
     target_dir: Optional[str] = None
     template: str = "{filepath}"
 
-
-# --- 原有 API Endpoints (保持不变) ---
 @app.get("/healthz")
 async def healthz():
     return "ok"
@@ -220,8 +197,6 @@ async def status():
 async def version():
     return {"code": 0, "data": {"version": "2.1", "name": "telegram-115bot-backend"}}
 
-# 注意：这里保留了旧的 config/get 接口，防止旧脚本失效
-# 新前端使用的是 settings_router 里的 /api/config
 @app.get("/api/config/get")
 async def config_get():
     try:
@@ -232,7 +207,6 @@ async def config_get():
             data = {r[0]: r[1] for r in cur}
         return {"code": 0, "data": data}
     except Exception as e:
-        write_log(f"config/get error: {e}")
         return {"code": 1, "msg": str(e)}
 
 @app.post("/api/config/update")
@@ -244,7 +218,6 @@ async def config_update(item: ConfigUpdate):
         set_config(item.key, val)
         return {"code": 0, "msg": "ok"}
     except Exception as e:
-        write_log(f"config/update error: {e}")
         return {"code": 1, "msg": str(e)}
 
 @app.post("/api/2fa/verify")
@@ -270,7 +243,6 @@ async def api_2fa_verify(req: Request, code: str = Form(...)):
             return {"code": 0, "msg": "verified"}
         return {"code": 2, "msg": "invalid code"}
     except Exception as e:
-        write_log(f"2fa verify error: {e}")
         return {"code": 3, "msg": str(e)}
 
 @app.get("/api/secret/get")
@@ -286,7 +258,6 @@ async def filesureq(file: UploadFile = File(...)):
     dest = UPLOADS_DIR / safe_name
     content = await file.read()
     dest.write_bytes(content)
-    write_log(f"uploaded {safe_name} ({len(content)} bytes)")
     return {"code": 0, "data": {"filename": safe_name, "path": str(dest)}}
 
 @app.get("/api/files/list")
@@ -305,8 +276,6 @@ async def files_list(path: str = "."):
     except Exception as e:
         return {"code": 2, "msg": str(e)}
 
-# 保留你自己的 115 登录接口 (手动填Cookie)
-# 新的扫码登录接口在 cloud115_qr_router 中
 @app.post("/api/115/login")
 async def api_115_login(cookie: Optional[str] = Form(None)):
     if cookie:
@@ -332,13 +301,10 @@ async def api_115_upload(filename: str = Form(...), remote_path: str = Form("/")
 
     try:
         result = p115.upload(str(src), remote_path)
-        write_log(f"115 upload success: {filename} → {remote_path}")
         return {"code": 0, "data": result}
     except P115Error as e:
-        write_log(f"115 upload failed: {e}")
         return {"code": 3, "msg": str(e)}
     except Exception as e:
-        write_log(f"115 upload exception: {e}")
         return {"code": 4, "msg": str(e)}
 
 @app.post("/api/organize/preview")
@@ -365,7 +331,6 @@ async def organize_run(body: OrgRules):
         )
 
     tid = submit_task(job)
-    write_log(f"organize task submitted: {tid}")
     return {"code": 0, "data": {"task_id": tid}}
 
 @app.post("/api/rename/run")
@@ -400,7 +365,6 @@ async def strm_generate(body: StrmBody):
         return generate_strm_for_files(body.files, body.target_dir, body.template)
 
     tid = submit_task(job)
-    write_log(f"strm generate task {tid} submitted")
     return {"code": 0, "data": {"task_id": tid}}
 
 @app.get("/api/task/status")
@@ -430,13 +394,11 @@ async def zid_reload():
     except Exception as e:
         return {"code": 1, "msg": str(e)}
 
-# --- 静态文件托管 (保持原有逻辑) ---
 def find_frontend_dir() -> Path:
     env_path = os.getenv("FRONTEND_DIST")
     if env_path:
         p = Path(env_path)
         if (p / "index.html").exists():
-            push_log("INFO", f"通过环境变量找到前端: {p}")
             return p
 
     current_root = BASE_DIR.parent
@@ -451,16 +413,24 @@ def find_frontend_dir() -> Path:
 
     for p in candidates:
         if p.exists() and (p / "index.html").exists():
-            push_log("INFO", f"自动探测到前端目录: {p}")
             return p
     
     fallback = Path("/app/frontend/dist")
-    push_log("WARN", "⚠️ 未找到有效的前端 dist 目录，将加载空目录")
     os.makedirs(fallback, exist_ok=True)
     return fallback
 
 static_dir = find_frontend_dir()
-app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
+
+assets_dir = static_dir / "assets"
+if assets_dir.exists():
+    app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    file_path = static_dir / full_path
+    if file_path.exists() and file_path.is_file():
+        return FileResponse(file_path)
+    return FileResponse(static_dir / "index.html")
 
 if __name__ == "__main__":
     cfg_path = BASE_DIR / "config.json"
