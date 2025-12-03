@@ -1,13 +1,4 @@
 # backend/router/file.py
-"""
-网盘文件操作（与前端文件管理交互）
-包含：
-- /api/file/list
-- /api/file/move
-- /api/file/rename
-- /api/file/notify_emby  (刷新 Emby 并在刮削后获取 PlaybackInfo)
-"""
-
 from fastapi import APIRouter, Form, BackgroundTasks
 from typing import Optional
 import time
@@ -18,6 +9,7 @@ from core.db import get_config, get_secret
 from core.logger import push_log
 from core.qps_limiter import get_limiter
 from core.zid_loader import ZID_CACHE
+from core.organizer import start_organize_job 
 
 router = APIRouter()
 
@@ -42,7 +34,6 @@ def api_file_move(src: str = Form(...), dst: str = Form(...)):
     cookie = get_secret("115_cookie")
     try:
         p = P115Wrapper(cookie)
-        # 尝试常见 move 方法
         for name in ("move","file_move","mv","fs_move"):
             if hasattr(p.client, name):
                 fn = getattr(p.client, name)
@@ -52,7 +43,6 @@ def api_file_move(src: str = Form(...), dst: str = Form(...)):
                     return {"code": 0, "data": r}
                 except Exception:
                     continue
-        # fallback: 返回 unsupported
         return {"code": 2, "msg": "p115client 未实现移动接口"}
     except Exception as e:
         push_log("ERROR", f"move error: {e}")
@@ -60,26 +50,17 @@ def api_file_move(src: str = Form(...), dst: str = Form(...)):
 
 @router.post("/api/file/rename")
 def api_file_rename(path: str = Form(...), new_name: str = Form(...)):
-    # 直接调用 move 到同目录下新名称
     dst = "/".join(path.split("/")[:-1] + [new_name])
     return api_file_move(src=path, dst=dst)
 
 @router.post("/api/file/notify_emby")
 def api_notify_emby(path: str = Form(...), background: BackgroundTasks = None):
-    """
-    path: 网盘中文件或目录路径（整理完成后调用）
-    逻辑：
-      - 触发 Emby 刷新（/Library/Refresh）
-      - 等待 4 秒
-      - 前端/后端会在 Emby 刮削完成后触发回调；如果没有回调，1 秒后调用 Items/{ItemId}/PlaybackInfo（需要前端提供 ItemId）
-    """
     host, api_key = _get_emby_info()
     if not host or not api_key:
         push_log("WARN", "Emby 配置未设置，跳过刷新")
         return {"code": 1, "msg": "emby not configured"}
     push_log("INFO", "触发 Emby 刷新媒体库")
     try:
-        # 限流
         qps = int(get_config("emby_qps", 1))
         limiter = get_limiter("emby", qps)
         if not limiter.consume():
@@ -91,8 +72,6 @@ def api_notify_emby(path: str = Form(...), background: BackgroundTasks = None):
                 requests.post(url, timeout=10)
                 push_log("INFO", "已触发 Emby 刷新，等待 4 秒")
                 time.sleep(4)
-                # 发送通知后由 Emby 刮削，1 秒后可查询 PlaybackInfo（需要前端或 webhook 提供 ItemId）
-                # 这里仅记录流程，PlaybackInfo 的调用需要 ItemId，由前端/Emby webhook 提供
             except Exception as e:
                 push_log("ERROR", f"触发 Emby 刷新失败: {e}")
 
@@ -104,3 +83,20 @@ def api_notify_emby(path: str = Form(...), background: BackgroundTasks = None):
     except Exception as e:
         push_log("ERROR", f"notify emby error: {e}")
         return {"code": 2, "msg": str(e)}
+
+@router.post("/api/file/organize/start")
+async def api_organize_start():
+    push_log("INFO", "接收到前端请求，开始启动网盘整理任务...")
+    
+    try:
+        job_id = await start_organize_job() 
+        
+        if job_id:
+            push_log("INFO", f"网盘整理任务已成功启动，Job ID: {job_id}")
+            return {"code": 0, "msg": "整理任务已在后台启动", "data": {"job_id": job_id}}
+        else:
+            return {"code": 1, "msg": "整理任务启动失败或配置未启用"}
+            
+    except Exception as e:
+        push_log("ERROR", f"启动整理任务时发生错误: {e}")
+        return {"code": 500, "msg": f"服务器内部错误: {e}"}
