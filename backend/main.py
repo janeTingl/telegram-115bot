@@ -8,8 +8,7 @@ import uvicorn
 from fastapi import FastAPI, Request, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from fastapi.staticfiles import StaticFiles # ⚠️ 虽然保留，但静态文件功能被移除
 
 try:
     from api.common_settings import router as settings_router
@@ -18,12 +17,12 @@ except ImportError:
     settings_router = None
     cloud115_qr_router = None
 
-# --- 核心路径配置 (修改部分) ---
+# --- 核心路径配置 (数据持久化部分) ---
 # BASE_DIR: 代码所在的目录 (例如 /app/backend)
 BASE_DIR = Path(__file__).resolve().parent
 
 # DATA_DIR: 数据持久化目录 (例如 /app/data)
-# 优先读取环境变量，默认回退到当前目录下的 data 文件夹
+# 优先级：环境变量 DATA_DIR > BASE_DIR.parent / data
 DATA_DIR = Path(os.getenv("DATA_DIR", BASE_DIR.parent / "data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -410,35 +409,23 @@ async def zid_reload():
     except Exception as e:
         return {"code": 1, "msg": str(e)}
 
-# --- 前端静态文件配置 ---
+# --- 清理掉静态文件配置，由 Nginx 负责 ---
+# ⚠️ 注意: FileResponse 和 StaticFiles 模块虽然保留 import，但未在路由中使用
 
-# 代码文件还是在原来的地方，不需要改
-static_dir = BASE_DIR.parent / "frontend" / "dist"
+# ⚠️ 移除：static_dir = BASE_DIR.parent / "frontend" / "dist"
+# ⚠️ 移除：assets_dir = static_dir / "assets"
+# ⚠️ 移除：app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
 
-assets_dir = static_dir / "assets"
-if assets_dir.exists():
-    app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
-else:
-    print(f"Warning: Assets directory not found at {assets_dir}")
-
-@app.get("/{full_path:path}")
-async def serve_spa(full_path: str):
-    file_path = static_dir / full_path
-    if file_path.exists() and file_path.is_file():
-        return FileResponse(file_path)
-    
-    index_path = static_dir / "index.html"
-    if index_path.exists():
-        return FileResponse(index_path)
-    
-    return JSONResponse({"code": 404, "msg": "Frontend files not found"}, status_code=404)
+# ⚠️ 移除：@app.get("/{full_path:path}") 的 serve_spa 路由
 
 if __name__ == "__main__":
-    # 4. 配置文件路径 -> /app/data/config.json
+    # 配置文件路径
     cfg_path = DATA_DIR / "config.json"
     
     host = "0.0.0.0"
-    port = 12808
+    # 【关键清理】：端口硬编码为 8000
+    # 这是 Supervisor 启动时 Uvicorn 实际监听的端口，供 Nginx 内部反向代理使用。
+    port = 8000 
     reload = True
 
     if cfg_path.exists():
@@ -446,11 +433,14 @@ if __name__ == "__main__":
             cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
             server_cfg = cfg.get("server", {})
             host = server_cfg.get("host", host)
-            port = server_cfg.get("port", port)
+            # 即使配置文件里有 port 字段，Supervisor 启动时也会覆盖为 8000
+            # 这里保持不变，以防其他地方用到配置
             reload = server_cfg.get("reload", True)
         except Exception:
             pass
 
+    # ⚠️ 注意：在 Supervisor 模式下，实际启动命令在 supervisord.conf 中，
+    # 这里的代码主要用于本地调试或作为 Supervisor 的目标程序。
     uvicorn.run(
         "main:app", 
         host=host,
