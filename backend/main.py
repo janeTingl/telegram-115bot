@@ -395,17 +395,35 @@ async def zid_reload():
     except Exception as e:
         return {"code": 1, "msg": str(e)}
 
-DOCKER_FRONTEND_DIR = Path("/app/frontend/dist")
-LOCAL_FRONTEND_DIR = BASE_DIR.parent / "frontend/dist"
+def find_frontend_dir() -> Path:
+    env_path = os.getenv("FRONTEND_DIST")
+    if env_path:
+        p = Path(env_path)
+        if (p / "index.html").exists():
+            push_log("INFO", f"通过环境变量找到前端: {p}")
+            return p
 
-if DOCKER_FRONTEND_DIR.exists():
-    static_dir = DOCKER_FRONTEND_DIR
-elif LOCAL_FRONTEND_DIR.exists():
-    static_dir = LOCAL_FRONTEND_DIR
-else:
-    static_dir = DOCKER_FRONTEND_DIR
-    os.makedirs(static_dir, exist_ok=True)
+    current_root = BASE_DIR.parent
+    candidates = [
+        current_root / "app/dist",
+        current_root / "frontend/dist",
+        current_root / "dist",
+        Path("/app/app/dist"),
+        Path("/app/frontend/dist"),
+        Path("/app/dist"),
+    ]
 
+    for p in candidates:
+        if p.exists() and (p / "index.html").exists():
+            push_log("INFO", f"自动探测到前端目录: {p}")
+            return p
+    
+    fallback = Path("/app/frontend/dist")
+    push_log("WARN", "⚠️ 未找到有效的前端 dist 目录，将加载空目录")
+    os.makedirs(fallback, exist_ok=True)
+    return fallback
+
+static_dir = find_frontend_dir()
 app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
 if __name__ == "__main__":
