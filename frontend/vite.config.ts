@@ -22,7 +22,7 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: '../backend/dist',    // ← 这个你已经对了，保留！
+    outDir: 'dist',    
     emptyOutDir: true,
   }
 });
