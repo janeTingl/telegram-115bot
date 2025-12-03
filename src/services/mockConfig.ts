@@ -185,7 +185,7 @@ const DEFAULT_CONFIG: AppConfig = {
     urlPrefixOpenList: 'http://127.0.0.1:5244/d',
     webdav: {
         enabled: false,
-        port: '5005',
+        port: '12808',
         username: 'admin',
         password: 'password',
         readOnly: true
