@@ -8,8 +8,12 @@ import uvicorn
 from fastapi import FastAPI, Request, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
-from fastapi.staticfiles import StaticFiles # ⚠️ 虽然保留，但静态文件功能被移除
+from fastapi.staticfiles import StaticFiles  # ⚠️ 保留 import，但未使用
 
+# ✅ 修复：导入 BaseModel
+from pydantic import BaseModel
+
+# --- 可选路由导入 ---
 try:
     from api.common_settings import router as settings_router
     from api.cloud115_qr import router as cloud115_qr_router
@@ -17,29 +21,20 @@ except ImportError:
     settings_router = None
     cloud115_qr_router = None
 
-# --- 核心路径配置 (数据持久化部分) ---
-# BASE_DIR: 代码所在的目录 (例如 /app/backend)
+# --- 核心路径配置 ---
 BASE_DIR = Path(__file__).resolve().parent
-
-# DATA_DIR: 数据持久化目录 (例如 /app/data)
-# 优先级：环境变量 DATA_DIR > BASE_DIR.parent / data
 DATA_DIR = Path(os.getenv("DATA_DIR", BASE_DIR.parent / "data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-# 1. 上传文件 -> /app/data/uploads
 UPLOADS_DIR = DATA_DIR / "uploads"
 UPLOADS_DIR.mkdir(exist_ok=True)
 
-# 2. 日志文件 -> /app/data/backend.log
 LOG_PATH = DATA_DIR / "backend.log"
-
-# 3. 2FA 缓存 -> /app/data/2fa_sessions.json
 _2FA_SESSIONS_PATH = DATA_DIR / "2fa_sessions.json"
 
-
+# --- 日志辅助函数 ---
 def write_log(msg: str):
     line = f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {msg}\n"
-    # 确保日志目录存在
     LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(LOG_PATH, "a", encoding="utf-8") as f:
         f.write(line)
@@ -50,6 +45,7 @@ except Exception:
     def push_log(level: str, msg: str):
         write_log(f"[{level}] {msg}")
 
+# --- 其他模块导入 ---
 try:
     from task_queue import submit_task, get_task, TaskStatus
 except Exception:
@@ -99,6 +95,7 @@ except Exception:
     ZID_CACHE: Dict[str, Any] = {}
     def load_zid(): return {}
 
+# --- FastAPI 实例 ---
 app = FastAPI(title="115Bot Backend", version="2.1")
 
 app.add_middleware(
@@ -109,6 +106,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- 路由自动加载 ---
 def _include_router(module_name: str):
     try:
         mod = __import__(module_name, fromlist=["router"])
@@ -136,6 +134,7 @@ try:
 except Exception:
     pass
 
+# --- 2FA 会话管理 ---
 def _load_2fa_sessions() -> Dict[str, float]:
     if _2FA_SESSIONS_PATH.exists():
         try:
@@ -168,6 +167,7 @@ def _client_key(req: Request) -> str:
         or (req.client.host if req.client else "unknown")
     )
 
+# --- 115 Wrapper 单例 ---
 _P115_INSTANCE = None
 def get_p115() -> Optional[P115Wrapper]:
     global _P115_INSTANCE
@@ -179,6 +179,7 @@ def get_p115() -> Optional[P115Wrapper]:
             _P115_INSTANCE = False
     return _P115_INSTANCE if _P115_INSTANCE and _P115_INSTANCE is not False else None
 
+# --- Pydantic 模型 ---
 class ConfigUpdate(BaseModel):
     key: str
     value: Any
@@ -198,6 +199,7 @@ class StrmBody(BaseModel):
     target_dir: Optional[str] = None
     template: str = "{filepath}"
 
+# --- 健康检查 / 基础路由 ---
 @app.get("/healthz")
 async def healthz():
     return "ok"
@@ -210,6 +212,7 @@ async def status():
 async def version():
     return {"code": 0, "data": {"version": "2.1", "name": "telegram-115bot-backend"}}
 
+# --- 配置 / Secret / 文件上传等接口 ---
 @app.get("/api/config/get")
 async def config_get():
     try:
@@ -268,7 +271,6 @@ async def secret_get(req: Request, key: str):
 @app.post("/api/files/upload")
 async def filesureq(file: UploadFile = File(...)):
     safe_name = Path(file.filename).name
-    # 存到 DATA_DIR/uploads 下
     dest = UPLOADS_DIR / safe_name
     content = await file.read()
     dest.write_bytes(content)
@@ -282,14 +284,12 @@ async def files_list(path: str = "."):
         p = Path(path).resolve()
         if not p.is_dir():
             return {"code": 1, "msg": "not directory"}
-        items = [
-            {"name": x.name, "path": str(x), "is_dir": x.is_dir()}
-            for x in p.iterdir()
-        ]
+        items = [{"name": x.name, "path": str(x), "is_dir": x.is_dir()} for x in p.iterdir()]
         return {"code": 0, "data": items}
     except Exception as e:
         return {"code": 2, "msg": str(e)}
 
+# --- 115 上传相关 ---
 @app.post("/api/115/login")
 async def api_115_login(cookie: Optional[str] = Form(None)):
     if cookie:
@@ -309,7 +309,6 @@ async def api_115_upload(filename: str = Form(...), remote_path: str = Form("/")
     if not limiter.consume():
         return {"code": 429, "msg": "rate limited"}
 
-    # 从 UPLOADS_DIR 找文件
     src = UPLOADS_DIR / Path(filename).name
     if not src.exists():
         return {"code": 1, "msg": "local file not found"}
@@ -322,6 +321,7 @@ async def api_115_upload(filename: str = Form(...), remote_path: str = Form("/")
     except Exception as e:
         return {"code": 4, "msg": str(e)}
 
+# --- Organizer / Rename / STRM / Task / Bot / ZID 接口 ---
 @app.post("/api/organize/preview")
 async def organize_preview(body: OrgRules):
     if not preview_organize:
@@ -409,23 +409,13 @@ async def zid_reload():
     except Exception as e:
         return {"code": 1, "msg": str(e)}
 
-# --- 清理掉静态文件配置，由 Nginx 负责 ---
-# ⚠️ 注意: FileResponse 和 StaticFiles 模块虽然保留 import，但未在路由中使用
-
-# ⚠️ 移除：static_dir = BASE_DIR.parent / "frontend" / "dist"
-# ⚠️ 移除：assets_dir = static_dir / "assets"
-# ⚠️ 移除：app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
-
-# ⚠️ 移除：@app.get("/{full_path:path}") 的 serve_spa 路由
+# --- 清理静态文件，由 Nginx 负责 ---
+# FileResponse / StaticFiles 已保留 import，但未挂载
 
 if __name__ == "__main__":
-    # 配置文件路径
     cfg_path = DATA_DIR / "config.json"
-    
     host = "0.0.0.0"
-    # 【关键清理】：端口硬编码为 8000
-    # 这是 Supervisor 启动时 Uvicorn 实际监听的端口，供 Nginx 内部反向代理使用。
-    port = 8000 
+    port = 8000
     reload = True
 
     if cfg_path.exists():
@@ -433,16 +423,12 @@ if __name__ == "__main__":
             cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
             server_cfg = cfg.get("server", {})
             host = server_cfg.get("host", host)
-            # 即使配置文件里有 port 字段，Supervisor 启动时也会覆盖为 8000
-            # 这里保持不变，以防其他地方用到配置
             reload = server_cfg.get("reload", True)
         except Exception:
             pass
 
-    # ⚠️ 注意：在 Supervisor 模式下，实际启动命令在 supervisord.conf 中，
-    # 这里的代码主要用于本地调试或作为 Supervisor 的目标程序。
     uvicorn.run(
-        "main:app", 
+        "main:app",
         host=host,
         port=port,
         reload=reload,
