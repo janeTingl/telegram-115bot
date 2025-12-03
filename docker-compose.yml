@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   backend:
-    build: ./backend
+    image: yongzz668/telegram-115bot:latest
     container_name: telegram_115_backend
     restart: unless-stopped
     ports:
@@ -12,3 +12,4 @@ services:
       - ./backend/backend.log:/app/backend.log
       - ./backend/secrets.db:/app/secrets.db
       - ./backend/data.db:/app/data.db
+      - ./backend/data:/app/data   # 挂载整个 data 文件夹，保证密码数据库持久化
