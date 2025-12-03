@@ -1,13 +1,14 @@
 // views/UserCenterView.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppConfig } from '../types';
-import { loadConfig, saveConfig } from '../services/mockConfig';
-import { saveAdminPassword, saveProxyConfig, generate2FASecret, verifyAndSave2FA } from '../services/config';
+import { loadConfig } from '../services/mockConfig'; 
+import { saveAdminPassword, saveProxyConfig, generate2FASecret, verifyAndSave2FA, loadGlobalConfig } from '../services/config';
 import { Save, RefreshCw, KeyRound, User, Smartphone, Wifi, Shield, HardDrive, Cloud, Globe, Film, Bot, CheckCircle2, AlertCircle, Zap } from 'lucide-react';
 import { SensitiveInput } from '../components/SensitiveInput';
 
 export const UserCenterView: React.FC = () => {
-  const [config, setConfig] = useState<AppConfig>(loadConfig());
+  const [config, setConfig] = useState<AppConfig | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [newPassword, setNewPassword] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isPwSaving, setIsPwSaving] = useState(false);
@@ -17,17 +18,33 @@ export const UserCenterView: React.FC = () => {
   const [tempSecret, setTempSecret] = useState('');
   const [verifyCode, setVerifyCode] = useState('');
   const [setupError, setSetupError] = useState('');
-  // 新增状态：存储二维码 URL
   const [otpauthUrl, setOtpauthUrl] = useState(''); 
-
+  
+  useEffect(() => {
+    const fetchConfig = async () => {
+        try {
+            const initialConfig = await loadGlobalConfig();
+            setConfig(initialConfig);
+        } catch (e) {
+            console.error("Failed to load config from backend, using mock data:", e);
+            setConfig(loadConfig());
+            setToast('警告: 无法连接后端，使用本地配置。');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    fetchConfig();
+  }, []);
+  
   const updateNested = (section: keyof AppConfig, key: string, value: any) => {
     setConfig(prev => ({
-      ...prev,
-      [section]: { ...prev[section], [key]: value }
+      ...prev!, 
+      [section]: { ...prev![section], [key]: value }
     }));
   };
 
   const handleSave = async () => {
+    if (!config) return;
     setIsSaving(true);
     setToast('正在保存代理配置...');
     
@@ -37,7 +54,6 @@ export const UserCenterView: React.FC = () => {
             port: String(config.proxy.port)
         }); 
         
-        saveConfig(config); 
         setToast('代理配置已更新');
     } catch (e) {
         setToast(`保存失败: ${e.message}`);
@@ -68,9 +84,6 @@ export const UserCenterView: React.FC = () => {
       updateNested('proxy', 'host', window.location.hostname);
   };
 
-  // ----------------------------------------------------
-  // 核心修改：异步获取 2FA 密钥
-  // ----------------------------------------------------
   const start2FASetup = async () => {
       setSetupError('');
       setToast('正在生成 2FA 密钥...');
@@ -93,9 +106,6 @@ export const UserCenterView: React.FC = () => {
       setOtpauthUrl('');
   };
 
-  // ----------------------------------------------------
-  // 核心修改：异步验证并保存 2FA 密钥
-  // ----------------------------------------------------
   const confirm2FASetup = async () => {
       if (!verifyCode || verifyCode.length !== 6) {
           setSetupError('请输入完整的 6 位验证码');
@@ -107,9 +117,7 @@ export const UserCenterView: React.FC = () => {
       try {
           await verifyAndSave2FA(tempSecret, verifyCode); 
 
-          // 验证成功，更新本地配置和 UI
-          setConfig(prev => ({ ...prev, twoFactorSecret: tempSecret }));
-          saveConfig({ ...config, twoFactorSecret: tempSecret }); // 模拟保存到本地
+          setConfig(prev => ({ ...prev!, twoFactorSecret: tempSecret }));
           
           setIsSetup2FA(false);
           setTempSecret('');
@@ -126,40 +134,48 @@ export const UserCenterView: React.FC = () => {
   const services = [
     {
         name: '115 网盘',
-        isConnected: !!config.cloud115.cookies,
+        isConnected: !!config?.cloud115.cookies,
         icon: HardDrive,
         colorClass: 'text-orange-600 dark:text-orange-400',
         bgClass: 'bg-orange-50 dark:bg-orange-900/20'
     },
     {
         name: '123 云盘',
-        isConnected: config.cloud123.enabled && !!config.cloud123.clientId,
+        isConnected: config?.cloud123.enabled && !!config?.cloud123.clientId,
         icon: Cloud,
         colorClass: 'text-blue-600 dark:text-blue-400',
         bgClass: 'bg-blue-50 dark:bg-blue-900/20'
     },
     {
         name: 'OpenList',
-        isConnected: config.openList.enabled && !!config.openList.url,
+        isConnected: config?.openList.enabled && !!config?.openList.url,
         icon: Globe,
         colorClass: 'text-cyan-600 dark:text-cyan-400',
         bgClass: 'bg-cyan-50 dark:bg-cyan-900/20'
     },
     {
         name: 'TMDB',
-        isConnected: !!config.tmdb.apiKey,
+        isConnected: !!config?.tmdb.apiKey,
         icon: Film,
         colorClass: 'text-pink-600 dark:text-pink-400',
         bgClass: 'bg-pink-50 dark:bg-pink-900/20'
     },
     {
         name: 'TG 机器人',
-        isConnected: !!config.telegram.botToken,
+        isConnected: !!config?.telegram.botToken,
         icon: Bot,
         colorClass: 'text-sky-600 dark:text-sky-400',
         bgClass: 'bg-sky-50 dark:bg-sky-900/20'
     }
   ];
+
+  if (isLoading || !config) {
+     return (
+        <div className="min-h-screen flex items-center justify-center text-slate-500">
+           <RefreshCw className="animate-spin mr-2" size={24} /> 正在加载配置...
+        </div>
+     );
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -287,7 +303,6 @@ export const UserCenterView: React.FC = () => {
                   <h4 className="font-bold text-slate-800 dark:text-white mb-4 text-sm">设置步骤</h4>
                   
                   <div className="bg-white/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700/50 flex flex-col items-center mb-4">
-                      {/* 使用 otpauthUrl 生成二维码 */}
                       <img 
                         src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(otpauthUrl)}`}
                         alt="2FA QR"
