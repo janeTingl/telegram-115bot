@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { Logo } from '../components/Logo';
-import { login, isLocked, getFailedAttempts } from '../services/auth';
+import { login, isLocked, getFailedAttempts } from '../services/auth'; 
 import { User, KeyRound, AlertOctagon, ArrowRight } from 'lucide-react';
 
 interface LoginViewProps {
@@ -20,13 +19,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
     }
   }, [locked]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => { 
     e.preventDefault();
     setError('');
 
     if (locked) return;
 
-    const result = login(username, password);
+    const result = await login(username, password);
     
     if (result.success) {
       onLoginSuccess();
@@ -45,17 +44,14 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden z-10">
       <div className="max-w-md w-full relative z-20 animate-in fade-in zoom-in duration-500">
         
-        {/* Brand Header */}
         <div className="text-center mb-10 flex flex-col items-center">
           <div className="scale-150 mb-6 drop-shadow-2xl filter hover:brightness-110 transition-all">
              <Logo />
           </div>
         </div>
 
-        {/* Login Card (Glassmorphism) */}
         <div className="bg-black/40 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/10 overflow-hidden relative">
           
-          {/* Lockout Overlay */}
           {locked && (
             <div className="absolute inset-0 bg-red-950/90 z-30 flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-300">
                <div className="w-16 h-16 bg-red-500/20 text-red-200 rounded-full flex items-center justify-center mb-4 border border-red-500/50">
