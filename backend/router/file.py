@@ -1,9 +1,10 @@
-# backend/router/file.py
-from fastapi import APIRouter, Form, BackgroundTasks
-from typing import Optional
+import asyncio
+from fastapi import APIRouter, Form, BackgroundTasks, HTTPException, Query
+from typing import Optional, Dict, Any, List
 import time
 import requests
 
+# 假设这些 core 模块可以正确导入
 from core.p115_client import P115Wrapper, P115Error
 from core.db import get_config, get_secret
 from core.logger import push_log
@@ -18,16 +19,56 @@ def _get_emby_info():
     api_key = get_secret("emby_api_key", None)
     return host, api_key
 
+# ----------------------------------------------------------------------
+# 文件列表 API (适配 FileSelector)
+# ----------------------------------------------------------------------
+
+# 将 path 视为 115 的 CID
 @router.get("/api/file/list")
-def api_file_list(path: str = "/", limit: int = 200):
+async def api_file_list(path: str = Query("0"), limit: int = 200): 
     cookie = get_secret("115_cookie")
+    if not cookie:
+        # 如果未登录，返回 401
+        raise HTTPException(status_code=401, detail="115 Cookie 未设置")
+        
     try:
         p = P115Wrapper(cookie)
-        files = p.list_files(path, limit=limit)
-        return {"code": 0, "data": files}
+        
+        # 定义同步函数，负责调用 p115client 和数据格式化
+        def sync_list_files(cid: str, limit: int) -> List[Dict[str, Any]]:
+            # 假设 p.list_files 接受 CID 并返回原始数据
+            raw_files = p.list_files(cid, limit=limit) 
+            
+            # **【连通性核心：数据格式化】**
+            # 转换为前端 FileSelector 期望的格式：{ id, name, children, date }
+            formatted_files = []
+            for x in raw_files:
+                # 假设 raw_files 包含 n(name), cid/fid(id), te(time/date)
+                is_dir = x.get("cid") is not None and x.get("cid") != "" # 检查是否为目录
+                formatted_files.append({
+                    "id": str(x.get("cid", x.get("fid"))),
+                    "name": x.get("n"),
+                    "children": is_dir,
+                    "date": x.get("te") # 假设 'te' 是日期字段
+                })
+            return formatted_files
+
+        # **【异步包装】**：使用 asyncio.to_thread 安全地调用同步函数
+        files = await asyncio.to_thread(sync_list_files, path, limit)
+        
+        # 返回适配前端 FileSelector 的格式: { code: 0, data: [...] }
+        return {"code": 0, "data": files} 
+
+    except P115Error as e:
+        push_log("ERROR", f"115 client error: {e}")
+        raise HTTPException(status_code=500, detail=f"115 客户端错误: {e}")
     except Exception as e:
         push_log("ERROR", f"list files error: {e}")
-        return {"code": 1, "msg": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ----------------------------------------------------------------------
+# 其他原有 API 保持不变 (move, rename, notify_emby, organize/start)
+# ----------------------------------------------------------------------
 
 @router.post("/api/file/move")
 def api_file_move(src: str = Form(...), dst: str = Form(...)):
