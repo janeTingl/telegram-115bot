@@ -18,7 +18,11 @@ except ImportError:
     settings_router = None
     cloud115_qr_router = None
 
+# --- 基础路径设置 ---
+# 在 Docker 中: /app/backend/main.py
+# BASE_DIR = /app/backend
 BASE_DIR = Path(__file__).resolve().parent
+
 UPLOADS_DIR = BASE_DIR / "uploads"
 UPLOADS_DIR.mkdir(exist_ok=True)
 
@@ -394,43 +398,39 @@ async def zid_reload():
     except Exception as e:
         return {"code": 1, "msg": str(e)}
 
-def find_frontend_dir() -> Path:
-    env_path = os.getenv("FRONTEND_DIST")
-    if env_path:
-        p = Path(env_path)
-        if (p / "index.html").exists():
-            return p
+# --- 前端静态文件配置 (修复版) ---
 
-    current_root = BASE_DIR.parent
-    candidates = [
-        current_root / "app/dist",
-        current_root / "frontend/dist",
-        current_root / "dist",
-        Path("/app/app/dist"),
-        Path("/app/frontend/dist"),
-        Path("/app/dist"),
-    ]
+# 在 Dockerfile 中，我们执行了 COPY . /app
+# 所以结构是：
+# /app/backend/main.py  (当前文件)
+# /app/frontend/dist    (前端构建文件)
 
-    for p in candidates:
-        if p.exists() and (p / "index.html").exists():
-            return p
-    
-    fallback = Path("/app/frontend/dist")
-    os.makedirs(fallback, exist_ok=True)
-    return fallback
+# 1. 定位 dist 目录
+# 这里的 logic 是：当前文件在 /app/backend，所以往前退一级到 /app，再进 frontend/dist
+static_dir = BASE_DIR.parent / "frontend" / "dist"
 
-static_dir = find_frontend_dir()
-
+# 2. 挂载 /assets (JS/CSS)
 assets_dir = static_dir / "assets"
 if assets_dir.exists():
-    app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+    app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+else:
+    print(f"Warning: Assets directory not found at {assets_dir}")
 
+# 3. 处理 SPA 路由 (Vue/React History 模式)
+# 所有未匹配的 API 路径都返回 index.html
 @app.get("/{full_path:path}")
 async def serve_spa(full_path: str):
+    # 先尝试直接找文件 (比如 favicon.ico)
     file_path = static_dir / full_path
     if file_path.exists() and file_path.is_file():
         return FileResponse(file_path)
-    return FileResponse(static_dir / "index.html")
+    
+    # 找不到就返回 index.html (前端路由)
+    index_path = static_dir / "index.html"
+    if index_path.exists():
+        return FileResponse(index_path)
+    
+    return JSONResponse({"code": 404, "msg": "Frontend files not found"}, status_code=404)
 
 if __name__ == "__main__":
     cfg_path = BASE_DIR / "config.json"
