@@ -1,7 +1,8 @@
-
+// views/UserCenterView.tsx
 import React, { useState } from 'react';
 import { AppConfig } from '../types';
 import { loadConfig, saveConfig } from '../services/mockConfig';
+import { saveAdminPassword, saveProxyConfig } from '../services/config';
 import { Save, RefreshCw, KeyRound, User, Smartphone, Wifi, Shield, HardDrive, Cloud, Globe, Film, Bot, CheckCircle2, AlertCircle, Zap } from 'lucide-react';
 import { SensitiveInput } from '../components/SensitiveInput';
 
@@ -12,7 +13,6 @@ export const UserCenterView: React.FC = () => {
   const [isPwSaving, setIsPwSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   
-  // 2FA Setup State
   const [isSetup2FA, setIsSetup2FA] = useState(false);
   const [tempSecret, setTempSecret] = useState('');
   const [verifyCode, setVerifyCode] = useState('');
@@ -25,25 +25,41 @@ export const UserCenterView: React.FC = () => {
     }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
-    setTimeout(() => {
-      saveConfig(config);
-      setIsSaving(false);
-      setToast('代理配置已更新');
-      setTimeout(() => setToast(null), 3000);
-    }, 800);
+    setToast('正在保存代理配置...');
+    
+    try {
+        await saveProxyConfig({
+            ...config.proxy,
+            port: String(config.proxy.port)
+        }); 
+        
+        saveConfig(config); 
+        setToast('代理配置已更新');
+    } catch (e) {
+        setToast(`保存失败: ${e.message}`);
+    } finally {
+        setIsSaving(false);
+        setTimeout(() => setToast(null), 3000);
+    }
   };
 
-  const handlePasswordSave = () => {
+  const handlePasswordSave = async () => {
     if (!newPassword) return;
     setIsPwSaving(true);
-    setTimeout(() => {
-      setIsPwSaving(false);
-      setNewPassword('');
-      setToast('管理员密码已修改');
-      setTimeout(() => setToast(null), 3000);
-    }, 1000);
+    setToast('正在修改管理员密码...');
+    
+    try {
+        await saveAdminPassword(newPassword); 
+        setNewPassword('');
+        setToast('管理员密码已修改');
+    } catch (e) {
+        setToast(`修改失败: ${e.message}`);
+    } finally {
+        setIsPwSaving(false);
+        setTimeout(() => setToast(null), 3000);
+    }
   };
 
   const fillLocalIp = () => {
@@ -75,7 +91,6 @@ export const UserCenterView: React.FC = () => {
       }
   };
 
-  // Service Status Definitions
   const services = [
     {
         name: '115 网盘',
@@ -127,7 +142,6 @@ export const UserCenterView: React.FC = () => {
         <h2 className="text-2xl font-bold text-slate-800 dark:text-white tracking-tight drop-shadow-sm">用户中心</h2>
       </div>
 
-      {/* Service Status Grid - Glassmorphism */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {services.map((service) => (
             <div key={service.name} className="bg-white/70 dark:bg-slate-900/50 backdrop-blur-md rounded-xl border border-white/50 dark:border-slate-700/50 p-4 shadow-sm flex flex-col items-center justify-center gap-3 relative overflow-hidden group hover:bg-white/90 dark:hover:bg-slate-800/60 transition-all duration-300">
@@ -156,7 +170,6 @@ export const UserCenterView: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Account Settings */}
         <section className="bg-white/70 dark:bg-slate-900/50 backdrop-blur-md rounded-xl border border-white/50 dark:border-slate-700/50 shadow-sm flex flex-col">
            <div className="px-6 py-4 border-b border-slate-200/50 dark:border-slate-700/50 flex items-center gap-3">
               <User size={18} className="text-slate-400" />
@@ -199,7 +212,6 @@ export const UserCenterView: React.FC = () => {
            </div>
         </section>
 
-        {/* 2FA Settings */}
         <section className="bg-white/70 dark:bg-slate-900/50 backdrop-blur-md rounded-xl border border-white/50 dark:border-slate-700/50 shadow-sm flex flex-col">
            <div className="px-6 py-4 border-b border-slate-200/50 dark:border-slate-700/50 flex items-center gap-3">
               <Smartphone size={18} className="text-slate-400" />
@@ -226,7 +238,7 @@ export const UserCenterView: React.FC = () => {
                       <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1.5">当前密钥 (Secret Key)</label>
                       <SensitiveInput
                           value={config.twoFactorSecret || ''}
-                          onChange={(e) => {}} // Read-only via Setup
+                          onChange={(e) => {}}
                           className="w-full px-4 py-2.5 rounded-lg border border-slate-300/50 dark:border-slate-600/50 bg-white/50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-slate-500 outline-none font-mono text-sm backdrop-blur-sm"
                        />
                   </div>
@@ -285,7 +297,6 @@ export const UserCenterView: React.FC = () => {
            )}
         </section>
 
-        {/* Network Proxy */}
         <section className="bg-white/70 dark:bg-slate-900/50 backdrop-blur-md rounded-xl border border-white/50 dark:border-slate-700/50 shadow-sm lg:col-span-2">
           <div className="px-6 py-4 border-b border-slate-200/50 dark:border-slate-700/50 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -300,7 +311,6 @@ export const UserCenterView: React.FC = () => {
                         <span className="text-[10px] font-mono font-medium text-slate-500 dark:text-slate-400">128ms</span>
                     </div>
                 )}
-                {/* Header Toggle */}
                 <div className="relative inline-block w-9 h-5 transition duration-200 ease-in-out rounded-full cursor-pointer">
                     <input 
                         id="proxyEnabled" 
@@ -353,7 +363,6 @@ export const UserCenterView: React.FC = () => {
               </div>
             </div>
             
-            {/* Inline Save Button */}
             <div className="flex justify-end mt-6">
                 <button
                     onClick={handleSave}
