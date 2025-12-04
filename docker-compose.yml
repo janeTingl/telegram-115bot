@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   backend:
-    image: yongzz668/telegram-115bot:latest
+    image: janebin/telegram-115bot:latest
     container_name: telegram_115_backend
     restart: unless-stopped
     ports:
