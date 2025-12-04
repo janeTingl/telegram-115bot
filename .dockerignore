@@ -1,0 +1,49 @@
+# Git history and metadata
+.git
+.gitignore
+.github
+
+# Python virtual environments and caches
+.venv
+**/__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+
+# Node build artifacts
+node_modules
+frontend/node_modules
+frontend/dist
+frontend/.cache
+
+# Frontend local assets
+*.log
+*.tmp
+*.temp
+
+# Local data and secrets
+data
+backend/data
+backend/uploads
+backend/*.db
+backend/*.log
+backend/logs
+backend/secrets.db
+backend/data.db
+backend/uploads
+backend/logs
+backend/backend.log
+uploads
+logs
+*.db
+*.sqlite
+*.token
+*.secret
+.env
+.env.*
+.dockerhub-token
+
+# Build outputs that should not be sent to Docker context
+/build
+/dist

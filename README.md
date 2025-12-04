@@ -174,6 +174,8 @@ volumes:
 
 ### 本地开发
 
+> 前端依赖 React Router v7，构建和开发需要 **Node.js 20+**。
+
 1. 安装依赖：
 
 ```bash
