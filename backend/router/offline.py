@@ -19,6 +19,12 @@ from utils.rename import smart_rename_and_move
 from core.zid_loader import ZID_CACHE
 from task_queue import submit_task
 
+try:
+    from bot_integration import notify_bot
+except ImportError:
+    def notify_bot(msg, level="info"):
+        return False
+
 router = APIRouter()
 
 # QPS 控制：从 config 获取（使用 get_config）
@@ -35,7 +41,7 @@ class OfflineCreateBody(BaseModel):
     target_folder: str = "/"
     notify_tg: bool = True
 
-@router.post("/api/offline/create")
+@router.post("/offline/create")
 def api_offline_create(body: OfflineCreateBody, background: BackgroundTasks):
     """
     创建离线任务并在后台轮询完成。
@@ -132,7 +138,7 @@ def api_offline_create(body: OfflineCreateBody, background: BackgroundTasks):
         push_log("ERROR", f"offline.create 未知错误: {e}")
         return {"code": 3, "msg": str(e)}
 
-@router.get("/api/offline/status")
+@router.get("/offline/status")
 def api_offline_status(task_id: str):
     # 查询本地任务队列状态（由 task_queue 管理）
     from task_queue import get_task

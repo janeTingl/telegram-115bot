@@ -7,7 +7,7 @@ from core.utils import verify_totp
 
 router = APIRouter()
 
-@router.post("/login")
+@router.post("/auth/login")
 async def login(password: str = Form(...)):
     saved_password = get_config("admin_password") or get_config("password") or "admin"
     
@@ -16,7 +16,7 @@ async def login(password: str = Form(...)):
     else:
         return {"code": 1, "msg": "密码错误"}
 
-@router.post("/api/auth/password")
+@router.post("/auth/password")
 async def api_set_password(new_password: str = Form(...)):
     if not new_password:
         return {"code": 1, "msg": "新密码不能为空"}
@@ -28,7 +28,7 @@ async def api_set_password(new_password: str = Form(...)):
     except Exception as e:
         return {"code": 500, "msg": f"保存失败: {e}"}
 
-@router.get("/api/auth/2fa/generate")
+@router.get("/auth/2fa/generate")
 async def api_2fa_generate():
     secret = generate_base32_secret()
     otpauth_url = f"otpauth://totp/115BotAdmin?secret={secret}&issuer=115Bot"
@@ -42,7 +42,7 @@ async def api_2fa_generate():
         }
     }
 
-@router.post("/api/auth/2fa/verify")
+@router.post("/auth/2fa/verify")
 async def api_2fa_verify(
     secret: str = Form(...),
     code: str = Form(...)

@@ -13,7 +13,7 @@ def _get_emby_conf():
     api_key = get_secret("emby_api_key", None)
     return host, api_key
 
-@router.post("/api/emby/refresh_and_probe")
+@router.post("/emby/refresh_and_probe")
 def api_emby_refresh_and_probe(item_id: str = Form(None), background: BackgroundTasks = None):
     """
     触发 Emby 刷新库，等待 4 秒；若传入 item_id，则在 1 秒后调用 PlaybackInfo

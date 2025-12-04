@@ -115,6 +115,7 @@ def _include_router(module_name: str):
         pass
 
 _include_router("router.auth")
+_include_router("router.config")
 _include_router("router.offline")
 _include_router("router.file")
 _include_router("router.notify")
