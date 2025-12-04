@@ -65,3 +65,34 @@ export const login = async (username: string, pass: string): Promise<{ success: 
     return { success: false, locked: getFailedAttempts() >= MAX_ATTEMPTS };
   }
 };
+
+export const verify2FA = async (code: string): Promise<boolean> => {
+  const formData = new FormData();
+  formData.append('code', code);
+
+  try {
+    const response = await fetch('/api/2fa/verify', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const result = await response.json();
+    
+    if (result.code === 0) {
+      sessionStorage.setItem(TWO_FA_KEY, 'verified');
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error("2FA verification error:", error);
+    return false;
+  }
+};
+
+export const check2FA = (): boolean => {
+  return sessionStorage.getItem(TWO_FA_KEY) === 'verified';
+};

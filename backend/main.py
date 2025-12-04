@@ -294,7 +294,14 @@ async def files_list(path: str = "."):
 # 包含 /api/rename/run、/api/strm/generate、/api/task/status、/api/bot/send
 # /api/zid/list、/api/zid/reload 等
 # ⭐ 前端静态资源挂载（必须位于所有 API 之后）
-app.mount("/", StaticFiles(directory="dist", html=True), name="static")
+# In production, nginx serves static files directly
+# In development, serve from frontend/dist
+try:
+    FRONTEND_DIST = BASE_DIR.parent / "frontend" / "dist"
+    if FRONTEND_DIST.exists():
+        app.mount("/", StaticFiles(directory=str(FRONTEND_DIST), html=True), name="static")
+except Exception:
+    pass
 # --- 启动 ---
 if __name__ == "__main__":
     cfg_path = DATA_DIR / "config.json"
