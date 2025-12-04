@@ -247,6 +247,14 @@ docker pull janebin/telegram-115bot:latest
 docker pull janebin/telegram-115bot:v1.0.0
 ```
 
+### 🔧 GitHub Actions 故障排查
+
+如果遇到 Docker Hub 登录失败（"Username and password required"），请参考：
+
+- **快速修复**: [QUICK_FIX.md](QUICK_FIX.md) - 3 步解决问题
+- **详细指南**: [DOCKER_HUB_SECRETS_FIX.md](DOCKER_HUB_SECRETS_FIX.md) - 完整配置说明
+- **问题总结**: [DOCKER_LOGIN_FIX_SUMMARY.md](DOCKER_LOGIN_FIX_SUMMARY.md) - 问题分析和解决方案
+
 ---
 
 **Made with ❤️ by Telegram 115 Bot Team**
