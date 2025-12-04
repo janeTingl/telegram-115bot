@@ -4,7 +4,6 @@ from typing import Optional, Dict, Any, List
 import time
 import requests
 
-# 假设这些 core 模块可以正确导入
 from core.p115_client import P115Wrapper, P115Error
 from core.db import get_config, get_secret
 from core.logger import push_log
@@ -24,7 +23,7 @@ def _get_emby_info():
 # ----------------------------------------------------------------------
 
 # 将 path 视为 115 的 CID
-@router.get("/api/file/list")
+@router.get("/file/list")
 async def api_file_list(path: str = Query("0"), limit: int = 200): 
     cookie = get_secret("115_cookie")
     if not cookie:
@@ -70,7 +69,7 @@ async def api_file_list(path: str = Query("0"), limit: int = 200):
 # 其他原有 API 保持不变 (move, rename, notify_emby, organize/start)
 # ----------------------------------------------------------------------
 
-@router.post("/api/file/move")
+@router.post("/file/move")
 def api_file_move(src: str = Form(...), dst: str = Form(...)):
     cookie = get_secret("115_cookie")
     try:
@@ -89,12 +88,12 @@ def api_file_move(src: str = Form(...), dst: str = Form(...)):
         push_log("ERROR", f"move error: {e}")
         return {"code": 3, "msg": str(e)}
 
-@router.post("/api/file/rename")
+@router.post("/file/rename")
 def api_file_rename(path: str = Form(...), new_name: str = Form(...)):
     dst = "/".join(path.split("/")[:-1] + [new_name])
     return api_file_move(src=path, dst=dst)
 
-@router.post("/api/file/notify_emby")
+@router.post("/file/notify_emby")
 def api_notify_emby(path: str = Form(...), background: BackgroundTasks = None):
     host, api_key = _get_emby_info()
     if not host or not api_key:
@@ -125,7 +124,7 @@ def api_notify_emby(path: str = Form(...), background: BackgroundTasks = None):
         push_log("ERROR", f"notify emby error: {e}")
         return {"code": 2, "msg": str(e)}
 
-@router.post("/api/file/organize/start")
+@router.post("/file/organize/start")
 async def api_organize_start():
     push_log("INFO", "接收到前端请求，开始启动网盘整理任务...")
     

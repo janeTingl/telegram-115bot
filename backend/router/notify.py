@@ -12,7 +12,7 @@ import time
 
 router = APIRouter()
 
-@router.post("/api/notify/115_event")
+@router.post("/notify/115_event")
 async def api_notify_115_event(req: Request, background: BackgroundTasks):
     """
     接收 p115 的文件变更事件（示例 payload）

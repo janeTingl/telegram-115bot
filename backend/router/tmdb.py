@@ -5,7 +5,7 @@ from core.logger import push_log
 
 router = APIRouter()
 
-@router.post("/api/tmdb/search")
+@router.post("/tmdb/search")
 def api_tmdb_search(q: str = Form(...), typ: str = Form("movie"), year: int = None):
     try:
         if typ == "movie":
@@ -17,7 +17,7 @@ def api_tmdb_search(q: str = Form(...), typ: str = Form("movie"), year: int = No
         push_log("ERROR", f"TMDB search 错误: {e}")
         return {"code": 1, "msg": str(e)}
 
-@router.post("/api/tmdb/details")
+@router.post("/tmdb/details")
 def api_tmdb_details(tmdb_id: int = Form(...), typ: str = Form("movie")):
     try:
         if typ == "movie":
@@ -29,7 +29,7 @@ def api_tmdb_details(tmdb_id: int = Form(...), typ: str = Form("movie")):
         push_log("ERROR", f"TMDB details 错误: {e}")
         return {"code": 1, "msg": str(e)}
 
-@router.post("/api/tmdb/identify")
+@router.post("/tmdb/identify")
 def api_tmdb_identify(name: str = Form(...), typ: str = Form("movie")):
     try:
         if typ == "movie":
