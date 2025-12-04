@@ -292,6 +292,8 @@ async def files_list(path: str = "."):
 # 包含 /api/115/login、/api/115/upload、/api/organize/run 等
 # 包含 /api/rename/run、/api/strm/generate、/api/task/status、/api/bot/send
 # /api/zid/list、/api/zid/reload 等
+# ⭐ 前端静态资源挂载（必须位于所有 API 之后）
+app.mount("/", StaticFiles(directory="dist", html=True), name="static")
 # --- 启动 ---
 if __name__ == "__main__":
     cfg_path = DATA_DIR / "config.json"
