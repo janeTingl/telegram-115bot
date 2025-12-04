@@ -42,7 +42,7 @@
 
 #### Secret 1: DOCKERHUB_USERNAME
 - **Name**: `DOCKERHUB_USERNAME`
-- **Value**: 你的 Docker Hub 用户名（例如：`yongzz668`）
+- **Value**: 你的 Docker Hub 用户名（例如：`janebin`）
 
 #### Secret 2: DOCKERHUB_TOKEN
 - **Name**: `DOCKERHUB_TOKEN`
@@ -74,15 +74,15 @@
 
 ### 主分支推送
 推送到 `main` 或 `master` 分支时：
-- `your-username/telegram-115bot:latest`
-- `your-username/telegram-115bot:main`（或 `master`）
+- `janebin/telegram-115bot:latest`
+- `janebin/telegram-115bot:main`（或 `master`）
 
 ### 版本标签
 创建版本标签时（如 `v1.2.3`）：
-- `your-username/telegram-115bot:1.2.3`
-- `your-username/telegram-115bot:1.2`
-- `your-username/telegram-115bot:1`
-- `your-username/telegram-115bot:latest`
+- `janebin/telegram-115bot:1.2.3`
+- `janebin/telegram-115bot:1.2`
+- `janebin/telegram-115bot:1`
+- `janebin/telegram-115bot:latest`
 
 ### 示例
 
@@ -126,10 +126,10 @@ git push origin v1.0.1
 
 ```bash
 # 拉取最新版本
-docker pull your-username/telegram-115bot:latest
+docker pull janebin/telegram-115bot:latest
 
 # 拉取特定版本
-docker pull your-username/telegram-115bot:1.0.0
+docker pull janebin/telegram-115bot:1.0.0
 ```
 
 ### 使用 Docker Compose
@@ -140,7 +140,7 @@ docker pull your-username/telegram-115bot:1.0.0
 version: "3.8"
 services:
   backend:
-    image: your-username/telegram-115bot:latest
+    image: janebin/telegram-115bot:latest
     container_name: telegram_115_backend
     restart: unless-stopped
     ports:
@@ -168,7 +168,7 @@ docker run -d \
   -p 12808:12808 \
   -v $(pwd)/backend/data:/app/data \
   -v $(pwd)/backend/uploads:/app/uploads \
-  your-username/telegram-115bot:latest
+  janebin/telegram-115bot:latest
 ```
 
 ## 🔍 故障排查

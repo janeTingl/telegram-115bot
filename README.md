@@ -1,7 +1,7 @@
 # Telegram 115 Bot
 
-[![Docker Build](https://github.com/YOUR_USERNAME/telegram-115bot/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/YOUR_USERNAME/telegram-115bot/actions/workflows/docker-publish.yml)
-[![Docker Hub](https://img.shields.io/docker/pulls/YOUR_USERNAME/telegram-115bot.svg)](https://hub.docker.com/r/YOUR_USERNAME/telegram-115bot)
+[![Docker Build](https://github.com/janebin/telegram-115bot/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/janebin/telegram-115bot/actions/workflows/docker-publish.yml)
+[![Docker Hub](https://img.shields.io/docker/pulls/janebin/telegram-115bot.svg)](https://hub.docker.com/r/janebin/telegram-115bot)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 > 全栈 Telegram 115 云盘管理机器人，带有完整的 Web 管理面板
@@ -48,14 +48,14 @@ Telegram 115 Bot 是一个功能强大的全栈应用，提供：
 1. 拉取镜像：
 
 ```bash
-docker pull YOUR_USERNAME/telegram-115bot:latest
+docker pull janebin/telegram-115bot:latest
 ```
 
 2. 使用 Docker Compose 运行：
 
 ```bash
 # 克隆仓库
-git clone https://github.com/YOUR_USERNAME/telegram-115bot.git
+git clone https://github.com/janebin/telegram-115bot.git
 cd telegram-115bot
 
 # 启动服务
@@ -223,4 +223,24 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ---
 
-**注意**：使用前请将 `YOUR_USERNAME` 替换为你的 GitHub/Docker Hub 用户名
+## 🐳 Docker Hub 信息
+
+**Docker Hub 仓库**: [janebin/telegram-115bot](https://hub.docker.com/r/janebin/telegram-115bot)
+
+- 用户名: `janebin`
+- 镜像名: `telegram-115bot`
+- 支持架构: AMD64, ARM64
+
+### 拉取镜像
+
+```bash
+# 最新版本
+docker pull janebin/telegram-115bot:latest
+
+# 特定版本
+docker pull janebin/telegram-115bot:v1.0.0
+```
+
+---
+
+**Made with ❤️ by Telegram 115 Bot Team**
