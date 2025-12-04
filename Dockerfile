@@ -1,3 +1,19 @@
+# Stage 1: Build frontend
+FROM node:18-alpine AS frontend-builder
+
+WORKDIR /app/frontend
+
+# Copy frontend package files
+COPY frontend/package*.json ./
+RUN npm install
+
+# Copy frontend source code
+COPY frontend/ ./
+
+# Build frontend
+RUN npm run build
+
+# Stage 2: Python backend with Nginx
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -16,8 +32,14 @@ COPY backend/requirements.txt /app/backend/requirements.txt
 RUN pip install --upgrade pip && \
     pip install -r /app/backend/requirements.txt
 
-# 复制全部代码 (前端 dist、后端代码)
-COPY . /app
+# 复制后端代码和其他文件
+COPY backend/ /app/backend/
+COPY app/ /app/app/
+COPY configure-secrets.sh verify-docker-image.sh verify-dockerhub-token.sh /app/
+COPY zid.yml VERSION /app/
+
+# Copy built frontend from builder stage
+COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
 
 # 拷贝配置文件到系统目录
 COPY nginx.conf /etc/nginx/nginx.conf

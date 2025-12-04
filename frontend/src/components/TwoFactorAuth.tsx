@@ -15,9 +15,10 @@ export const TwoFactorAuth: React.FC<TwoFactorAuthProps> = ({ isOpen, onClose, o
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (verify2FA(code)) {
+    const verified = await verify2FA(code);
+    if (verified) {
       onSuccess();
       onClose();
       setCode('');
