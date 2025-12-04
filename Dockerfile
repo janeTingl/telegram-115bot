@@ -1,11 +1,11 @@
 # Stage 1: Build frontend
-FROM node:18-alpine AS frontend-builder
+FROM node:20-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 
-# Copy frontend package files
+# Copy frontend package files first to leverage Docker layer caching
 COPY frontend/package*.json ./
-RUN npm install
+RUN npm ci
 
 # Copy frontend source code
 COPY frontend/ ./
