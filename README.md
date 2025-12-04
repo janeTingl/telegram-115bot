@@ -161,8 +161,14 @@ volumes:
 
 ## 📚 文档
 
-- [Docker 发布配置指南](DOCKER_PUBLISH.md)
-- [后端实现文档](BACKEND_IMPLEMENTATION.md)
+### 快速开始
+- [⚡ 快速设置指南](SETUP_INSTRUCTIONS.md) - 三步完成 Docker Hub 部署
+- [📋 部署检查清单](DEPLOYMENT_CHECKLIST.md) - 完整部署流程
+
+### 详细配置
+- [🔐 GitHub Secrets 配置](GITHUB_SECRETS_SETUP.md) - 详细配置步骤
+- [🐳 Docker 发布配置](DOCKER_PUBLISH.md) - 工作流详解
+- [📖 后端实现文档](BACKEND_IMPLEMENTATION.md) - 技术细节
 
 ## 🛠️ 开发
 
@@ -244,3 +250,5 @@ docker pull janebin/telegram-115bot:v1.0.0
 ---
 
 **Made with ❤️ by Telegram 115 Bot Team**
+
+*Last updated: 2024 - Ready for Docker Hub deployment*
