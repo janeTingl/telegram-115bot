@@ -1,106 +1,176 @@
-# 🚀 开始使用 Docker Hub 自动发布
+# 🚀 开始这里 - Docker Hub 首次发布快速指南
 
-> **重要**: 这是你配置 Docker Hub 自动发布的起点！
+## ⚡ 3 步完成首次发布（总计约 30 分钟）
 
----
+### 第 1 步：配置 GitHub Secrets（5 分钟）⏰
 
-## 👋 欢迎，janebin！
+**直接访问**：
+```
+https://github.com/janeTingl/telegram-115bot/settings/secrets/actions
+```
 
-你的 Docker Hub 自动发布已经配置好 95%，只需完成最后 5% 即可启动！
+**添加两个 Secrets**：
 
----
+| Name | Value |
+|------|-------|
+| `DOCKERHUB_USERNAME` | `janebin` |
+| `DOCKERHUB_TOKEN` | `[从 .dockerhub-token 文件获取]` |
 
-## ⚡ 快速开始（5 分钟）
+> 💡 **获取 Token**: 运行 `cat .dockerhub-token` 查看完整 Token 值
 
-### 第 1 步：配置 GitHub Secrets（必需！）
-
-1. **生成 Docker Hub Token**
-   - 访问 https://hub.docker.com/
-   - Account Settings → Security → New Access Token
-   - 权限: Read, Write, Delete
-   - **复制 Token**（只显示一次！）
-
-2. **添加到 GitHub**
-   - 访问 https://github.com/janebin/telegram-115bot/settings/secrets/actions
-   - 添加两个 Secrets:
-     - `DOCKERHUB_USERNAME` = `janebin`
-     - `DOCKERHUB_TOKEN` = (你的 Token)
-
-### 第 2 步：触发首次构建
-
-**最简单的方式**:
-1. 访问 https://github.com/janebin/telegram-115bot/actions
-2. 点击 "Build and Push Docker Image to Docker Hub"
-3. 点击 "Run workflow"
-4. 选择 `main` 分支并运行
-
-### 第 3 步：等待并验证（10-20 分钟）
-
-1. 监控构建: https://github.com/janebin/telegram-115bot/actions
-2. 检查 Docker Hub: https://hub.docker.com/r/janebin/telegram-115bot
-3. 测试拉取: `docker pull janebin/telegram-115bot:latest`
+**操作步骤**：
+1. 点击 "New repository secret"
+2. 填入 Name 和 Value
+3. 点击 "Add secret"
+4. 重复以上步骤添加第二个 Secret
 
 ---
 
-## 📚 详细文档
+### 第 2 步：触发工作流（1 分钟）⏰
 
-根据你的需求选择：
+**方式 A - 手动触发（推荐）**：
 
-| 如果你想... | 查看这个文档 |
-|------------|-------------|
-| 📖 了解完整操作步骤 | [SETUP_INSTRUCTIONS.md](SETUP_INSTRUCTIONS.md) ⭐ 推荐 |
-| ⚡ 5 分钟快速配置 | [QUICK_START_DOCKER_HUB.md](QUICK_START_DOCKER_HUB.md) |
-| 🔑 详细配置 Secrets | [GITHUB_SECRETS_SETUP.md](GITHUB_SECRETS_SETUP.md) |
-| 📊 查看配置总结 | [DOCKER_HUB_AUTO_PUBLISH_SUMMARY.md](DOCKER_HUB_AUTO_PUBLISH_SUMMARY.md) |
-| ✅ 验证配置清单 | [DOCKER_HUB_SETUP_VERIFICATION.md](DOCKER_HUB_SETUP_VERIFICATION.md) |
-| 📋 任务完成总结 | [TASK_COMPLETION_SUMMARY.md](TASK_COMPLETION_SUMMARY.md) |
+访问：https://github.com/janeTingl/telegram-115bot/actions
 
----
+1. 选择工作流：`Build and Push Docker Image to Docker Hub`
+2. 点击：`Run workflow`
+3. 选择分支：`main`
+4. 点击绿色按钮：`Run workflow`
 
-## ✅ 已配置完成
-
-- ✅ GitHub Actions 工作流
-- ✅ Dockerfile 验证
-- ✅ 多架构构建（AMD64 + ARM64）
-- ✅ 自动化标签管理
-- ✅ 所有文档更新
-- ✅ 版本标记 (v1.0.0)
-
-## ⚠️ 需要你完成
-
-- ⚠️ 配置 GitHub Secrets（5 分钟）
-- ⚠️ 触发首次构建（1 分钟）
-- ⚠️ 验证发布结果（2 分钟）
+**方式 B - 推送代码触发**：
+```bash
+git push origin main
+```
 
 ---
 
-## 🆘 需要帮助？
+### 第 3 步：验证成功（15-25 分钟自动构建）⏰
 
-- 所有常见问题都在文档中有详细说明
-- 从 [SETUP_INSTRUCTIONS.md](SETUP_INSTRUCTIONS.md) 开始
-- 查看 [QUICK_START_DOCKER_HUB.md](QUICK_START_DOCKER_HUB.md) 快速指南
+**监控构建进度**：
+```
+https://github.com/janeTingl/telegram-115bot/actions
+```
 
----
+**等待所有步骤完成**：
+- ✅ Pre-build Validation
+- ✅ Build and Push Docker Image
+- ✅ Notification
 
-## 🎯 目标
+**验证发布成功**：
 
-完成后，你将拥有：
-- ✅ 自动化的 Docker 镜像构建
-- ✅ 推送到 main 分支自动发布
-- ✅ 创建版本标签自动发布
-- ✅ 支持 AMD64 和 ARM64 架构
-- ✅ 公开的 Docker Hub 仓库
-
----
-
-**你的镜像**: `janebin/telegram-115bot`  
-**Docker Hub**: https://hub.docker.com/r/janebin/telegram-115bot  
-**GitHub**: https://github.com/janebin/telegram-115bot
-
----
-
-**👉 下一步**: 打开 [SETUP_INSTRUCTIONS.md](SETUP_INSTRUCTIONS.md) 开始配置！
+1. **GitHub Actions 显示绿色** ✓
+2. **Docker Hub 镜像可见**：
+   ```
+   https://hub.docker.com/r/janebin/telegram-115bot
+   ```
+3. **本地拉取测试**：
+   ```bash
+   docker pull janebin/telegram-115bot:latest
+   ```
 
 ---
 
-**Good luck! 🚀**
+## 📚 详细文档（如需要）
+
+| 文档 | 用途 |
+|------|------|
+| **DOCKER_HUB_PUBLISH_READY.md** | 完整的行动指南和状态说明 |
+| **SECRETS_CONFIGURATION_REQUIRED.md** | 详细的 Secrets 配置步骤和故障排查 |
+| **configure-secrets.sh** | 辅助脚本（验证凭据和提供指导） |
+| **TASK_COMPLETION_REPORT.md** | 技术实施报告和说明 |
+
+---
+
+## 🔧 辅助工具
+
+**运行配置脚本**（可选）：
+```bash
+./configure-secrets.sh
+```
+
+这会：
+- ✅ 验证 Docker Hub 凭据有效性
+- ✅ 提供详细的配置指导
+- ✅ 显示所有必要的链接和步骤
+
+---
+
+## ✅ 成功标志
+
+配置完成后，你会看到：
+
+- ✅ GitHub Secrets 页面显示 2 个 Secrets
+- ✅ GitHub Actions 工作流状态为 Success
+- ✅ Docker Hub 上显示新镜像
+- ✅ 本地可以拉取镜像
+
+---
+
+## 🎉 发布后
+
+### 使用镜像部署
+
+```bash
+# 使用 Docker Compose
+docker-compose up -d
+
+# 或直接运行
+docker run -d -p 12808:12808 janebin/telegram-115bot:latest
+
+# 访问管理面板
+open http://localhost:12808
+```
+
+### 后续自动发布
+
+配置一次后，以下操作会自动触发构建：
+- 推送到 main 分支 → 自动构建 `latest` 标签
+- 创建版本标签 → 自动构建版本标签
+  ```bash
+  git tag v1.1.0
+  git push origin v1.1.0
+  ```
+
+---
+
+## ❓ 遇到问题？
+
+### 常见问题快速修复
+
+**Q: Login to Docker Hub 步骤失败？**
+```
+解决：检查 Secret 名称和值是否完全正确（区分大小写，无多余空格）
+```
+
+**Q: 工作流找不到 Secrets？**
+```
+解决：确保 Secret 名称是 DOCKERHUB_USERNAME 和 DOCKERHUB_TOKEN（全大写）
+```
+
+**Q: 构建超时？**
+```
+解决：取消运行，等待 5 分钟后重新运行
+```
+
+### 查看详细日志
+
+在 Actions 页面点击工作流运行，展开失败的步骤查看详细错误。
+
+---
+
+## 📊 预期时间线
+
+```
+配置 Secrets         ━━━━━ 5 分钟
+触发工作流           ━ 1 分钟
+自动构建（等待）     ━━━━━━━━━━━━━━━ 15-25 分钟
+验证成功             ━━━ 5 分钟
+────────────────────────────────────────
+总计                 约 30 分钟
+```
+
+---
+
+**准备就绪！现在就开始配置吧！** 🚀
+
+**第一步链接**：https://github.com/janeTingl/telegram-115bot/settings/secrets/actions

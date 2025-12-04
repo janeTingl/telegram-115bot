@@ -1,6 +1,6 @@
 # Telegram 115 Bot
 
-[![Docker Build](https://github.com/janebin/telegram-115bot/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/janebin/telegram-115bot/actions/workflows/docker-publish.yml)
+[![Docker Build](https://github.com/janeTingl/telegram-115bot/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/janeTingl/telegram-115bot/actions/workflows/docker-publish.yml)
 [![Docker Hub](https://img.shields.io/docker/pulls/janebin/telegram-115bot.svg)](https://hub.docker.com/r/janebin/telegram-115bot)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -55,7 +55,7 @@ docker pull janebin/telegram-115bot:latest
 
 ```bash
 # 克隆仓库
-git clone https://github.com/janebin/telegram-115bot.git
+git clone https://github.com/janeTingl/telegram-115bot.git
 cd telegram-115bot
 
 # 启动服务
