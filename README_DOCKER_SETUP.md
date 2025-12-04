@@ -51,6 +51,10 @@
 
 ## 🚀 下一步操作（5 分钟）
 
+### ⚡ 遇到 "Username and password required" 错误？
+
+👉 查看快速修复指南：[QUICK_FIX.md](QUICK_FIX.md)
+
 ### 1️⃣ 配置 GitHub Secrets
 
 访问：https://github.com/janebin/telegram-115bot/settings/secrets/actions
@@ -59,6 +63,7 @@
 - `DOCKERHUB_USERNAME` = `janebin`
 - `DOCKERHUB_TOKEN` = 你的 Docker Hub Token
 
+> 📖 详细配置指南：参见 [DOCKER_HUB_SECRETS_FIX.md](DOCKER_HUB_SECRETS_FIX.md)
 > 📖 获取 Token：参见 [DOCKER_HUB_TOKEN_INFO.md](DOCKER_HUB_TOKEN_INFO.md)
 
 ### 2️⃣ 触发构建
