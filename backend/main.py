@@ -80,6 +80,17 @@ except Exception:
     def set_secret(k, v): pass
     def get_data_conn(): return None
 
+# --- 初始化默认管理员密码 ---
+def _initialize_default_admin():
+    try:
+        from core.db import get_config, set_config
+        existing_pass = get_config("admin_password") or get_config("password")
+        if not existing_pass:
+            set_config("admin_password", "admin")
+            write_log("INFO: Default admin password initialized (admin/admin)")
+    except Exception as e:
+        write_log(f"WARNING: Failed to initialize default admin password: {e}")
+
 try:
     from core.qps_limiter import get_limiter
 except Exception:
@@ -104,6 +115,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# --- 启动时初始化 ---
+@app.on_event("startup")
+async def startup_event():
+    _initialize_default_admin()
 
 # --- 路由自动加载 ---
 def _include_router(module_name: str):
