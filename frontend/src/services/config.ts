@@ -95,3 +95,43 @@ export const verifyAndSave2FA = async (secret: string, code: string): Promise<vo
         throw new Error(data.msg || "2FA 验证失败");
     }
 };
+
+
+// --- Settings Service (unified endpoint) ---
+export const loadSettings = async (): Promise<AppConfig> => {
+    const response = await fetch('/api/config', { method: 'GET' });
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+    const data = await response.json();
+    return data as AppConfig;
+};
+
+export const saveSettings = async (config: AppConfig): Promise<void> => {
+    const response = await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config),
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+    const data = await response.json();
+    if (data.code !== 0) {
+        throw new Error(data.msg || "配置保存失败");
+    }
+};
+
+export const testEmbyConnection = async (embyConfig: { host: string; api_key: string }): Promise<{ success: boolean; serverName?: string; version?: string; error?: string }> => {
+    const response = await fetch('/api/emby/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(embyConfig),
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+    return await response.json();
+};

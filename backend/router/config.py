@@ -44,3 +44,15 @@ async def api_set_proxy_config(proxy_config: ProxyConfig):
         return {"code": 0, "msg": "代理配置已保存"}
     except Exception as e:
         return {"code": 500, "msg": f"保存代理配置失败: {e}"}
+
+
+@router.get("/config")
+async def api_config_get_alias():
+    """获取配置 (别名路由，兼容 /api/config 调用)"""
+    return await api_config_load()
+
+
+@router.post("/config")
+async def api_config_post_alias(config: Dict[str, Any]):
+    """保存配置 (别名路由，兼容 /api/config 调用)"""
+    return await api_config_save_all(config)

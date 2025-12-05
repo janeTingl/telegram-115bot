@@ -4,6 +4,7 @@ import {
   Smartphone, Gauge, AlertTriangle, CheckCircle2, 
   Server, Send, ShieldAlert 
 } from 'lucide-react';
+import { loadSettings, saveSettings, testEmbyConnection } from '@/services/config';
 
 // 假设这是你的类型定义，根据实际情况调整
 interface AppConfig {
@@ -46,9 +47,7 @@ export const SettingsView: React.FC = () => {
 
   const fetchConfig = async () => {
     try {
-      const res = await fetch('/api/config');
-      if (!res.ok) throw new Error('加载配置失败');
-      const data = await res.json();
+      const data = await loadSettings();
       setConfig(data);
     } catch (err) {
       showToast('无法连接到后端服务器', 'error');
@@ -62,19 +61,10 @@ export const SettingsView: React.FC = () => {
     if (!config) return;
     setIsSaving(true);
     try {
-      const res = await fetch('/api/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config)
-      });
-      
-      if (res.ok) {
-        showToast('配置已保存并生效', 'success');
-      } else {
-        showToast('保存失败', 'error');
-      }
+      await saveSettings(config);
+      showToast('配置已保存并生效', 'success');
     } catch (err) {
-      showToast('网络请求错误', 'error');
+      showToast('保存失败: ' + (err instanceof Error ? err.message : '未知错误'), 'error');
     } finally {
       setIsSaving(false);
     }
@@ -135,27 +125,20 @@ export const SettingsView: React.FC = () => {
   };
 
   // --- 4. Emby 连接测试 ---
-  const testEmbyConnection = async () => {
+  const handleTestEmbyConnection = async () => {
     if (!config?.emby.host || !config?.emby.api_key) {
       showToast('请先填写 Emby Host 和 Key', 'error');
       return;
     }
-    const toastId = showToast('正在连接 Emby...', 'success'); // 简单提示
     try {
-        // 这里可以直接发送当前的 config.emby 字段给后端测试，而不必先保存
-        const res = await fetch('/api/emby/test', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(config.emby)
-        });
-        const data = await res.json();
-        if (data.success) {
-            showToast(`连接成功: ${data.serverName} (v${data.version})`, 'success');
+        const result = await testEmbyConnection(config.emby);
+        if (result.success) {
+            showToast(`连接成功: ${result.serverName} (v${result.version})`, 'success');
         } else {
-            showToast(`连接失败: ${data.error}`, 'error');
+            showToast(`连接失败: ${result.error}`, 'error');
         }
     } catch (e) {
-        showToast('测试请求发送失败', 'error');
+        showToast('测试请求发送失败: ' + (e instanceof Error ? e.message : '未知错误'), 'error');
     }
   };
 
@@ -292,7 +275,7 @@ export const SettingsView: React.FC = () => {
                 <h2 className="text-lg font-semibold text-slate-200">Emby 服务器</h2>
             </div>
             <button 
-                onClick={testEmbyConnection}
+                onClick={handleTestEmbyConnection}
                 className="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded text-slate-300 flex items-center space-x-1"
             >
                 <Gauge className="w-3 h-3" />
