@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Folder, ChevronRight, Check, X, HardDrive, ArrowLeft, Loader2 } from 'lucide-react';
-// 假设这是你的 API 客户端服务，请根据你的项目路径修改
-import { api } from '../services/api'; 
+import { fileService } from '../services/file'; 
 
 interface FileSelectorProps {
   isOpen: boolean;
@@ -30,22 +29,14 @@ export const FileSelector: React.FC<FileSelectorProps> = ({ isOpen, onClose, onS
     setIsLoading(true);
     setError(null);
     try {
-      // **【关键修改点：适配后端路由 /api/file/list?path=cid】**
-      const response = await api.get(`/api/file/list?path=${cid}`); 
-      
-      if (response && response.code === 0 && response.data) {
-        // 假设后端成功时返回的结构是 { code: 0, data: FileItem[] }
-        setCurrentFiles(response.data);
-      } else {
-        const msg = response?.msg || "获取列表失败，未知错误。";
-        setError(`115 接口错误: ${msg}`);
-        setCurrentFiles([]);
-      }
+      const files = await fileService.listFiles(cid);
+      setCurrentFiles(files);
       setSelectedId(null);
       setSelectedName('');
     } catch (err) {
       console.error("Error fetching 115 files:", err);
-      setError("无法连接到后端服务，请检查网络或配置。");
+      const errorMessage = err instanceof Error ? err.message : "无法连接到后端服务";
+      setError(errorMessage);
       setCurrentFiles([]);
     } finally {
       setIsLoading(false);
