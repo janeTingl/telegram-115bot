@@ -33,6 +33,7 @@ required_routes = [
     "POST /api/config/proxy",
     "GET  /api/file/list",
     "POST /api/file/organize/start",
+    "GET  /api/health/report",
 ]
 
 print("\nRequired routes:")

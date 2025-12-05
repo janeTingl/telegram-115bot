@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
-import uvicorn
 from fastapi import FastAPI, Request, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
@@ -137,6 +136,7 @@ _include_router("router.file")
 _include_router("router.notify")
 _include_router("router.tmdb")
 _include_router("router.emby")
+_include_router("router.health")
 
 if settings_router:
     app.include_router(settings_router)
@@ -320,6 +320,8 @@ except Exception:
     pass
 # --- 启动 ---
 if __name__ == "__main__":
+    import uvicorn
+
     cfg_path = DATA_DIR / "config.json"
     host = "0.0.0.0"
     port = 8000
